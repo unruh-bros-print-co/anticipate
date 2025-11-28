@@ -25,7 +25,63 @@
       "dummy"
     ],
     "resources": {
-      "media": []
+      "media": [
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_BG_0",
+          "file": "images/num-bg-0.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_BG_1",
+          "file": "images/num-bg-1.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_BG_2",
+          "file": "images/num-bg-2.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_BG_3",
+          "file": "images/num-bg-3.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_BG_4",
+          "file": "images/num-bg-4.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_BG_5",
+          "file": "images/num-bg-5.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_BG_6",
+          "file": "images/num-bg-6.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_BG_7",
+          "file": "images/num-bg-7.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_BG_8",
+          "file": "images/num-bg-8.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_BG_9",
+          "file": "images/num-bg-9.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_BACKGROUND_STATIC",
+          "file": "images/background-static.png"
+        }
+      ]
     }
   }
 }
