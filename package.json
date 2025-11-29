@@ -28,53 +28,53 @@
       "media": [
         {
           "type": "bitmap",
-          "name": "IMAGE_NUMBER_BG_0",
-          "file": "images/num-bg-0.png"
+          "name": "IMAGE_NUMBER_LG_0",
+          "file": "images/num-lg-0.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_NUMBER_BG_1",
-          "file": "images/num-bg-1.png"
+          "name": "IMAGE_NUMBER_LG_1",
+          "file": "images/num-lg-1.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_NUMBER_BG_2",
-          "file": "images/num-bg-2.png"
+          "name": "IMAGE_NUMBER_LG_2",
+          "file": "images/num-lg-2.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_NUMBER_BG_3",
-          "file": "images/num-bg-3.png"
+          "name": "IMAGE_NUMBER_LG_3",
+          "file": "images/num-lg-3.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_NUMBER_BG_4",
-          "file": "images/num-bg-4.png"
+          "name": "IMAGE_NUMBER_LG_4",
+          "file": "images/num-lg-4.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_NUMBER_BG_5",
-          "file": "images/num-bg-5.png"
+          "name": "IMAGE_NUMBER_LG_5",
+          "file": "images/num-lg-5.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_NUMBER_BG_6",
-          "file": "images/num-bg-6.png"
+          "name": "IMAGE_NUMBER_LG_6",
+          "file": "images/num-lg-6.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_NUMBER_BG_7",
-          "file": "images/num-bg-7.png"
+          "name": "IMAGE_NUMBER_LG_7",
+          "file": "images/num-lg-7.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_NUMBER_BG_8",
-          "file": "images/num-bg-8.png"
+          "name": "IMAGE_NUMBER_LG_8",
+          "file": "images/num-lg-8.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_NUMBER_BG_9",
-          "file": "images/num-bg-9.png"
+          "name": "IMAGE_NUMBER_LG_9",
+          "file": "images/num-lg-9.png"
         },
         {
           "type": "bitmap",
