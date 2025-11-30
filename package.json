@@ -38,6 +38,11 @@
         },
         {
           "type": "bitmap",
+          "name": "IMAGE_NUMBER_LG_1_V2",
+          "file": "images/num-lg-1-v2.png"
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_NUMBER_LG_2",
           "file": "images/num-lg-2.png"
         },
@@ -53,13 +58,38 @@
         },
         {
           "type": "bitmap",
+          "name": "IMAGE_NUMBER_LG_4_V2",
+          "file": "images/num-lg-4-v2.png"
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_NUMBER_LG_5",
           "file": "images/num-lg-5.png"
         },
         {
           "type": "bitmap",
+          "name": "IMAGE_NUMBER_LG_5_V2",
+          "file": "images/num-lg-5-v2.png"
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_NUMBER_LG_6",
           "file": "images/num-lg-6.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_LG_6_V2",
+          "file": "images/num-lg-6-v2.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_LG_6_V3",
+          "file": "images/num-lg-6-v3.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_LG_6_V4",
+          "file": "images/num-lg-6-v4.png"
         },
         {
           "type": "bitmap",
@@ -78,8 +108,28 @@
         },
         {
           "type": "bitmap",
+          "name": "IMAGE_NUMBER_LG_9_V2",
+          "file": "images/num-lg-9-v2.png"
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_BACKGROUND_STATIC",
           "file": "images/background-static.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_BACKGROUND_STATIC_V2",
+          "file": "images/background-static-v2.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_BACKGROUND_STATIC_V3",
+          "file": "images/background-static-v3.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_BACKGROUND_STATIC_V4",
+          "file": "images/background-static-v4.png"
         }
       ]
     }
