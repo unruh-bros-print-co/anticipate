@@ -87,7 +87,7 @@ static void main_window_load(Window *window) {
 
   // Bitmap Layers
   s_bitmap_layer_background = bitmap_layer_create(bounds);
-  s_bitmap_background = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BACKGROUND_STATIC_V3);
+  s_bitmap_background = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BACKGROUND_STATIC_V3_1);
   bitmap_layer_set_bitmap(s_bitmap_layer_background, s_bitmap_background);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_background));
 
