@@ -128,6 +128,11 @@
         },
         {
           "type": "bitmap",
+          "name": "IMAGE_BACKGROUND_STATIC_V3_1",
+          "file": "images/background-static-v3.1.png"
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_BACKGROUND_STATIC_V4",
           "file": "images/background-static-v4.png"
         }
