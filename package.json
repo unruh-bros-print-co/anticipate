@@ -113,6 +113,11 @@
         },
         {
           "type": "bitmap",
+          "name": "IMAGE_NUMBER_LG_9_V3",
+          "file": "images/num-lg-9-v3.png"
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_BACKGROUND_STATIC",
           "file": "images/background-static.png"
         },
