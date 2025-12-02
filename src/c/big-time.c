@@ -65,11 +65,7 @@ static void update_time(struct tm *tick_time) {
   else {
     bitmap_layer_set_bitmap(s_bitmap_layer_time_m1, s_bitmap_numbers_lg[m_tens]);
     bitmap_layer_set_bitmap(s_bitmap_layer_time_m1_offset, NULL);
-  } 
-  
-  // static char s_buffer[8];
-  // strftime(s_buffer, sizeof(s_buffer), clock_is_24h_style() ? "%H:%M" : "%I:%M", tick_time);
-  // text_layer_set_text(s_text_layer, s_buffer);
+  }
 }
 
 static void update_sun_index(struct tm *tick_time) {
@@ -139,18 +135,6 @@ static void main_window_load(Window *window) {
   s_bitmap_layer_time_m2 = bitmap_layer_create(GRect(94, 79, 46, 71));
   bitmap_layer_set_alignment(s_bitmap_layer_time_m2, GAlignRight);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_time_m2));
-
-  // Text Layer
-  // s_text_layer = text_layer_create(
-  //   GRect(0, PBL_IF_ROUND_ELSE(58, 52), bounds.size.w, 50));
-
-  // text_layer_set_background_color(s_text_layer, GColorClear);
-  // text_layer_set_text_color(s_text_layer, GColorBlack);
-  // // text_layer_set_text(s_text_layer, "00:00");
-  // text_layer_set_font(s_text_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
-  // text_layer_set_text_alignment(s_text_layer, GTextAlignmentCenter);
-
-  // layer_add_child(root_layer, text_layer_get_layer(s_text_layer));
 }
 
 static void main_window_unload(Window *window) {
