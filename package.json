@@ -150,6 +150,16 @@
           "type": "bitmap",
           "name": "IMAGE_BACKGROUND_STATIC_V4",
           "file": "images/background-static-v4.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_BACKGROUND_STATIC_V7",
+          "file": "images/background-static-v7.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_SUN_INDEX",
+          "file": "images/sun_index.png"
         }
       ]
     }

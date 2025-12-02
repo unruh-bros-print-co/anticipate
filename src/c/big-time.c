@@ -3,9 +3,18 @@
 static Window *s_main_window;
 // static TextLayer *s_text_layer;
 static GBitmap *s_bitmap_background;
+
+static int s_sunrise_sunset_ui_start_x = 45;
+static int s_sun_index_y = 165;
+static int s_sun_index_bitmap_left_offset = 2;
+static int s_sun_index_bitmap_width = 4;
+static int s_sun_index_bitmap_height = 3;
+static GBitmap *s_bitmap_sun_index;
+
 static GBitmap *s_bitmap_numbers_lg[10];
 
 static BitmapLayer *s_bitmap_layer_background;
+static BitmapLayer *s_bitmap_layer_sun_index;
 static BitmapLayer *s_bitmap_layer_time_h1;
 static BitmapLayer *s_bitmap_layer_time_h1_offset;
 static BitmapLayer *s_bitmap_layer_time_h2;
@@ -13,9 +22,7 @@ static BitmapLayer *s_bitmap_layer_time_m1;
 static BitmapLayer *s_bitmap_layer_time_m1_offset;
 static BitmapLayer *s_bitmap_layer_time_m2;
 
-static void update_time() {
-  time_t temp = time(NULL);
-  struct tm *tick_time = localtime(&temp);
+static void update_time(struct tm *tick_time) {
 
   int display_hour = tick_time->tm_hour;
 
@@ -32,7 +39,7 @@ static void update_time() {
   int h_ones = display_hour % 10;
 
   bitmap_layer_set_bitmap(s_bitmap_layer_time_h2, s_bitmap_numbers_lg[h_ones]);
-  if (h_tens == 0) {
+  if (!clock_is_24h_style() && h_tens == 0) {
     bitmap_layer_set_bitmap(s_bitmap_layer_time_h1, NULL);
     bitmap_layer_set_bitmap(s_bitmap_layer_time_h1_offset, NULL);
   }
@@ -65,8 +72,21 @@ static void update_time() {
   // text_layer_set_text(s_text_layer, s_buffer);
 }
 
+static void update_sun_index(struct tm *tick_time) {
+  int hr = tick_time->tm_hour;
+  int min = tick_time->tm_min;
+  
+  int minute_of_day = hr * 60;
+  minute_of_day += min;
+
+  int sun_index_x = s_sunrise_sunset_ui_start_x - s_sun_index_bitmap_left_offset + (minute_of_day / 15);
+
+  layer_set_frame(bitmap_layer_get_layer(s_bitmap_layer_sun_index), GRect(sun_index_x, s_sun_index_y, s_sun_index_bitmap_width, s_sun_index_bitmap_height));
+}
+
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  update_time();
+  update_time(tick_time);
+  update_sun_index(tick_time);
 }
 
 static void main_window_load(Window *window) {
@@ -87,9 +107,14 @@ static void main_window_load(Window *window) {
 
   // Bitmap Layers
   s_bitmap_layer_background = bitmap_layer_create(bounds);
-  s_bitmap_background = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BACKGROUND_STATIC_V3_1);
+  s_bitmap_background = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BACKGROUND_STATIC_V7);
   bitmap_layer_set_bitmap(s_bitmap_layer_background, s_bitmap_background);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_background));
+
+  s_bitmap_layer_sun_index = bitmap_layer_create(GRect(s_sunrise_sunset_ui_start_x, s_sun_index_y, s_sun_index_bitmap_width, s_sun_index_bitmap_height)); // initial sun_index at 12:00am.
+  s_bitmap_sun_index = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_SUN_INDEX);
+  bitmap_layer_set_bitmap(s_bitmap_layer_sun_index, s_bitmap_sun_index);
+  layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_sun_index));
 
   s_bitmap_layer_time_h1 = bitmap_layer_create(GRect(44, 4, 46, 71));
   bitmap_layer_set_alignment(s_bitmap_layer_time_h1, GAlignRight);
@@ -130,21 +155,24 @@ static void main_window_load(Window *window) {
 
 static void main_window_unload(Window *window) {
   // text_layer_destroy(s_text_layer);
-
-  gbitmap_destroy(s_bitmap_background);
-  bitmap_layer_destroy(s_bitmap_layer_background);
-
+  
   size_t array_length = sizeof(s_bitmap_numbers_lg) / sizeof(*s_bitmap_numbers_lg);
   for (size_t i = 0; i < array_length; i++) {
     gbitmap_destroy(s_bitmap_numbers_lg[i]);
   }
-
+  
   bitmap_layer_destroy(s_bitmap_layer_time_h1);
   bitmap_layer_destroy(s_bitmap_layer_time_h1_offset);
   bitmap_layer_destroy(s_bitmap_layer_time_h2);
   bitmap_layer_destroy(s_bitmap_layer_time_m1);
   bitmap_layer_destroy(s_bitmap_layer_time_m1_offset);
   bitmap_layer_destroy(s_bitmap_layer_time_m2);
+
+  gbitmap_destroy(s_bitmap_background);
+  bitmap_layer_destroy(s_bitmap_layer_background);
+
+  gbitmap_destroy(s_bitmap_sun_index);
+  bitmap_layer_destroy(s_bitmap_layer_sun_index);
 }
 
 static void init() {
@@ -158,8 +186,11 @@ static void init() {
   window_set_background_color(s_main_window, GColorBlack);
 
   window_stack_push(s_main_window, true);
-
-  update_time();
+  
+  time_t temp = time(NULL);
+  struct tm *tick_time = localtime(&temp);
+  update_time(tick_time);
+  update_sun_index(tick_time);
 
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
 }
