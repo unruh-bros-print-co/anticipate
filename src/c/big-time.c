@@ -6,7 +6,7 @@ static GBitmap *s_bitmap_background;
 
 static int s_sunrise_sunset_ui_start_x = 45;
 static int s_sun_index_y = 165;
-static int s_sun_index_bitmap_left_offset = 2;
+static int s_sun_index_bitmap_left_offset = 3;
 static int s_sun_index_bitmap_width = 4;
 static int s_sun_index_bitmap_height = 3;
 static GBitmap *s_bitmap_sun_index;
