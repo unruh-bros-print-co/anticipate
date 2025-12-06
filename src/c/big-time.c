@@ -1,4 +1,24 @@
 #include <pebble.h>
+#include "bitmap_info.h"
+
+const uint16_t XS_WIDTH = 6;
+const uint16_t XS_WIDTH_1 = 4;
+const uint16_t XS_WIDTH_DASH = 4;
+const uint16_t XS_HEIGHT = 10;
+
+// Special character indexes
+const uint16_t INDEX_DASH = 10; // '-'
+
+// UI element dimensions
+const uint16_t UI_DATE_X = 4;
+const uint16_t UI_DATE_Y = 29;
+const uint16_t UI_DATE_W = 36;
+const uint16_t UI_DATE_H = 21;
+const uint16_t UI_DATE_SPACING = 1;
+const uint16_t UI_DATE_CONTENT_X = 3;
+const uint16_t UI_DATE_CONTENT_Y = 6;
+
+static struct tm s_current_time;
 
 static Window *s_main_window;
 // static TextLayer *s_text_layer;
@@ -12,6 +32,7 @@ static int s_sun_index_bitmap_height = 3;
 static GBitmap *s_bitmap_sun_index;
 
 static GBitmap *s_bitmap_numbers_lg[10];
+static BitmapInfo s_bitmap_numbers_xs[11];
 
 static BitmapLayer *s_bitmap_layer_background;
 static BitmapLayer *s_bitmap_layer_sun_index;
@@ -21,6 +42,85 @@ static BitmapLayer *s_bitmap_layer_time_h2;
 static BitmapLayer *s_bitmap_layer_time_m1;
 static BitmapLayer *s_bitmap_layer_time_m1_offset;
 static BitmapLayer *s_bitmap_layer_time_m2;
+
+// Date Layer
+static Layer *s_layer_date;
+
+int calculate_string_width_px(char *str, BitmapInfo *bitmapInfoArray, uint16_t spacing_px) {
+  int total_width = 0;
+
+  for (int i = 0; str[i] != '\0'; i++) {
+    char current_char = str[i];
+
+    switch (current_char)
+    {
+      case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+      {
+        int digit_int = str[i] - '0';
+        total_width += bitmapInfoArray[digit_int].width;
+        break;
+      }
+      case '-':
+        total_width += bitmapInfoArray[INDEX_DASH].width;
+        break;      
+      default:
+        break;
+    }
+
+    if (str[i+1] != '\0') {
+      total_width += spacing_px;
+    }
+  }
+
+  return total_width;
+}
+
+void draw_string(GContext *ctx, char *str, int x_start, int y, BitmapInfo *bitmapInfoArray, uint16_t spacing_px) {
+  int x_current = x_start;
+  
+  for (int i = 0; str[i] != '\0'; i++) {
+    char current_char = str[i];
+    int current_width = 0;
+
+    // APP_LOG(APP_LOG_LEVEL_INFO, "About to draw character: %c", current_char);
+
+    switch (current_char)
+    {
+      case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+      {
+        int digit_int = current_char - '0';
+        current_width = bitmapInfoArray[digit_int].width;
+        graphics_draw_bitmap_in_rect(ctx, bitmapInfoArray[digit_int].gbitmap, GRect(x_current, y, bitmapInfoArray[digit_int].width, bitmapInfoArray[digit_int].height));
+        break;
+      }
+      case '-':
+        current_width = bitmapInfoArray[INDEX_DASH].width;
+        graphics_draw_bitmap_in_rect(ctx, bitmapInfoArray[INDEX_DASH].gbitmap, GRect(x_current, y, bitmapInfoArray[INDEX_DASH].width, bitmapInfoArray[INDEX_DASH].height));
+        break;
+      default:
+        break;
+    }
+
+    // increase x (include spacing)
+    x_current += current_width + spacing_px;
+  }
+}
+
+static void layer_date_update_proc(Layer *layer, GContext *ctx) {
+  
+  static char date_str[] = "MM-DD";
+  strftime(date_str, sizeof(date_str), "%m-%d", &s_current_time);
+  
+  graphics_context_set_compositing_mode(ctx, GCompOpSet);
+  GRect bounds = layer_get_bounds(layer);
+  int layer_width = bounds.size.w;
+
+  int date_width = calculate_string_width_px(date_str, s_bitmap_numbers_xs, UI_DATE_SPACING);
+
+  int starting_x = (layer_width - date_width) / 2;
+
+  draw_string(ctx, date_str, starting_x, UI_DATE_CONTENT_Y, s_bitmap_numbers_xs, UI_DATE_SPACING);
+}
 
 static void update_time(struct tm *tick_time) {
 
@@ -68,6 +168,11 @@ static void update_time(struct tm *tick_time) {
   }
 }
 
+static void update_date(struct tm *tick_time) {
+  // TODO add logic so you only update the UI when the day changes for efficiency
+  layer_mark_dirty(s_layer_date);
+}
+
 static void update_sun_index(struct tm *tick_time) {
   int hr = tick_time->tm_hour;
   int min = tick_time->tm_min;
@@ -81,8 +186,14 @@ static void update_sun_index(struct tm *tick_time) {
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+  s_current_time = *tick_time;
+
   update_time(tick_time);
+  update_date(tick_time);
   update_sun_index(tick_time);
+  // update_steps();
+  // update_weather();
+  // update_daylight();
 }
 
 static void main_window_load(Window *window) {
@@ -101,9 +212,21 @@ static void main_window_load(Window *window) {
   s_bitmap_numbers_lg[8] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_8);
   s_bitmap_numbers_lg[9] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_9_V4);
 
+  s_bitmap_numbers_xs[0] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_0_DARK), .width = XS_WIDTH, .height = XS_HEIGHT};
+  s_bitmap_numbers_xs[1] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_1_DARK), .width = XS_WIDTH_1, .height = XS_HEIGHT};
+  s_bitmap_numbers_xs[2] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_2_DARK), .width = XS_WIDTH, .height = XS_HEIGHT};
+  s_bitmap_numbers_xs[3] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_3_DARK), .width = XS_WIDTH, .height = XS_HEIGHT};
+  s_bitmap_numbers_xs[4] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_4_DARK), .width = XS_WIDTH, .height = XS_HEIGHT};
+  s_bitmap_numbers_xs[5] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_5_DARK), .width = XS_WIDTH, .height = XS_HEIGHT};
+  s_bitmap_numbers_xs[6] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_6_DARK), .width = XS_WIDTH, .height = XS_HEIGHT};
+  s_bitmap_numbers_xs[7] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_7_DARK), .width = XS_WIDTH, .height = XS_HEIGHT};
+  s_bitmap_numbers_xs[8] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_8_DARK), .width = XS_WIDTH, .height = XS_HEIGHT};
+  s_bitmap_numbers_xs[9] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_9_DARK), .width = XS_WIDTH, .height = XS_HEIGHT};
+  s_bitmap_numbers_xs[INDEX_DASH] =(BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_DASH_DARK), .width = XS_WIDTH_DASH, .height = XS_HEIGHT};
+
   // Bitmap Layers
   s_bitmap_layer_background = bitmap_layer_create(bounds);
-  s_bitmap_background = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BACKGROUND_STATIC_V7);
+  s_bitmap_background = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BACKGROUND_STATIC_V3_NO_DATE);
   bitmap_layer_set_bitmap(s_bitmap_layer_background, s_bitmap_background);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_background));
 
@@ -135,15 +258,14 @@ static void main_window_load(Window *window) {
   s_bitmap_layer_time_m2 = bitmap_layer_create(GRect(94, 79, 46, 71));
   bitmap_layer_set_alignment(s_bitmap_layer_time_m2, GAlignRight);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_time_m2));
+
+  s_layer_date = layer_create(GRect(UI_DATE_X, UI_DATE_Y, UI_DATE_W, UI_DATE_H));
+  layer_set_update_proc(s_layer_date, layer_date_update_proc);
+  layer_add_child(root_layer, s_layer_date);
 }
 
 static void main_window_unload(Window *window) {
   // text_layer_destroy(s_text_layer);
-  
-  size_t array_length = sizeof(s_bitmap_numbers_lg) / sizeof(*s_bitmap_numbers_lg);
-  for (size_t i = 0; i < array_length; i++) {
-    gbitmap_destroy(s_bitmap_numbers_lg[i]);
-  }
   
   bitmap_layer_destroy(s_bitmap_layer_time_h1);
   bitmap_layer_destroy(s_bitmap_layer_time_h1_offset);
@@ -151,6 +273,18 @@ static void main_window_unload(Window *window) {
   bitmap_layer_destroy(s_bitmap_layer_time_m1);
   bitmap_layer_destroy(s_bitmap_layer_time_m1_offset);
   bitmap_layer_destroy(s_bitmap_layer_time_m2);
+  
+  size_t array_length = sizeof(s_bitmap_numbers_lg) / sizeof(*s_bitmap_numbers_lg);
+  for (size_t i = 0; i < array_length; i++) {
+    gbitmap_destroy(s_bitmap_numbers_lg[i]);
+  }
+
+  layer_destroy(s_layer_date);
+
+  array_length = sizeof(s_bitmap_numbers_xs) / sizeof(*s_bitmap_numbers_xs);
+  for (size_t i = 0; i < array_length; i++) {
+    gbitmap_destroy(s_bitmap_numbers_xs[i].gbitmap);
+  }
 
   gbitmap_destroy(s_bitmap_background);
   bitmap_layer_destroy(s_bitmap_layer_background);

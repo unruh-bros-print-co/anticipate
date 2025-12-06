@@ -128,6 +128,61 @@
         },
         {
           "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_0_DARK",
+          "file": "images/num-xs-0-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_1_DARK",
+          "file": "images/num-xs-1-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_2_DARK",
+          "file": "images/num-xs-2-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_3_DARK",
+          "file": "images/num-xs-3-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_4_DARK",
+          "file": "images/num-xs-4-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_5_DARK",
+          "file": "images/num-xs-5-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_6_DARK",
+          "file": "images/num-xs-6-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_7_DARK",
+          "file": "images/num-xs-7-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_8_DARK",
+          "file": "images/num-xs-8-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_9_DARK",
+          "file": "images/num-xs-9-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_DASH_DARK",
+          "file": "images/num-xs-dash-dark.png"
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_BACKGROUND_STATIC",
           "file": "images/background-static.png"
         },
@@ -140,6 +195,11 @@
           "type": "bitmap",
           "name": "IMAGE_BACKGROUND_STATIC_V3",
           "file": "images/background-static-v3.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_BACKGROUND_STATIC_V3_NO_DATE",
+          "file": "images/background-static-v3_no_date.png"
         },
         {
           "type": "bitmap",
