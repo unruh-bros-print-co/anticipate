@@ -308,9 +308,11 @@ static void init() {
   time_t temp = time(NULL);
   struct tm *tick_time = localtime(&temp);
   update_time(tick_time);
+  update_date(tick_time);
   update_sun_index(tick_time);
 
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+  tick_handler(tick_time, MINUTE_UNIT);
 }
 
 static void deinit() {
