@@ -21,6 +21,9 @@
     "watchapp": {
       "watchface": true
     },
+    "capabilities": [
+      "health"
+    ],
     "messageKeys": [
       "dummy"
     ],
@@ -260,6 +263,11 @@
           "type": "bitmap",
           "name": "IMAGE_BACKGROUND_STATIC_V3_2_NO_DATE",
           "file": "images/background-static-v3-2_no_date.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_BACKGROUND_STATIC_V3_2_NO_DATE_NO_STEPS",
+          "file": "images/background-static-v3-2-no-date-no-steps.png"
         },
         {
           "type": "bitmap",
