@@ -133,8 +133,18 @@
         },
         {
           "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_0_LIGHT",
+          "file": "images/num-xs-0-light.png"
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_NUMBER_XS_1_DARK",
           "file": "images/num-xs-1-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_1_LIGHT",
+          "file": "images/num-xs-1-light.png"
         },
         {
           "type": "bitmap",
@@ -143,8 +153,18 @@
         },
         {
           "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_2_LIGHT",
+          "file": "images/num-xs-2-light.png"
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_NUMBER_XS_3_DARK",
           "file": "images/num-xs-3-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_3_LIGHT",
+          "file": "images/num-xs-3-light.png"
         },
         {
           "type": "bitmap",
@@ -153,8 +173,18 @@
         },
         {
           "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_4_LIGHT",
+          "file": "images/num-xs-4-light.png"
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_NUMBER_XS_5_DARK",
           "file": "images/num-xs-5-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_5_LIGHT",
+          "file": "images/num-xs-5-light.png"
         },
         {
           "type": "bitmap",
@@ -163,8 +193,18 @@
         },
         {
           "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_6_LIGHT",
+          "file": "images/num-xs-6-light.png"
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_NUMBER_XS_7_DARK",
           "file": "images/num-xs-7-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_7_LIGHT",
+          "file": "images/num-xs-7-light.png"
         },
         {
           "type": "bitmap",
@@ -173,13 +213,28 @@
         },
         {
           "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_8_LIGHT",
+          "file": "images/num-xs-8-light.png"
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_NUMBER_XS_9_DARK",
           "file": "images/num-xs-9-dark.png"
         },
         {
           "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_9_LIGHT",
+          "file": "images/num-xs-9-light.png"
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_NUMBER_XS_DASH_DARK",
           "file": "images/num-xs-dash-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XS_DASH_LIGHT",
+          "file": "images/num-xs-dash-light.png"
         },
         {
           "type": "bitmap",
@@ -200,6 +255,11 @@
           "type": "bitmap",
           "name": "IMAGE_BACKGROUND_STATIC_V3_NO_DATE",
           "file": "images/background-static-v3_no_date.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_BACKGROUND_STATIC_V3_2_NO_DATE",
+          "file": "images/background-static-v3-2_no_date.png"
         },
         {
           "type": "bitmap",
