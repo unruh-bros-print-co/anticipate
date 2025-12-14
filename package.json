@@ -22,10 +22,16 @@
       "watchface": true
     },
     "capabilities": [
-      "health"
+      "health",
+      "location"
     ],
     "messageKeys": [
-      "dummy"
+      "TEMP_HI",
+      "TEMP_CUR",
+      "TEMP_LO",
+      "CONDITIONS",
+      "SUNRISE",
+      "SUNSET"
     ],
     "resources": {
       "media": [
@@ -268,6 +274,11 @@
           "type": "bitmap",
           "name": "IMAGE_BACKGROUND_STATIC_V3_2_NO_DATE_NO_STEPS",
           "file": "images/background-static-v3-2-no-date-no-steps.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_BACKGROUND_STATIC_V3_2_NO_DATE_NO_STEPS_NO_WEATHER",
+          "file": "images/background-static-v3-2-no-date-no-steps-no-weather.png"
         },
         {
           "type": "bitmap",
