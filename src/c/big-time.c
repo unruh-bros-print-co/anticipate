@@ -10,6 +10,8 @@ const uint16_t XS_HEIGHT = 10;
 const uint16_t INDEX_DASH = 10; // '-'
 
 // UI element dimensions
+
+// Date
 const uint16_t UI_DATE_X = 4;
 const uint16_t UI_DATE_Y = 4;
 const uint16_t UI_DATE_W = 36;
@@ -17,12 +19,33 @@ const uint16_t UI_DATE_H = 21;
 const uint16_t UI_DATE_SPACING = 1;
 const uint16_t UI_DATE_CONTENT_Y = 6;
 
+// Steps
 const uint16_t UI_STEPS_X = 4;
 const uint16_t UI_STEPS_Y = 29;
 const uint16_t UI_STEPS_W = 36;
 const uint16_t UI_STEPS_H = 21;
 const uint16_t UI_STEPS_SPACING = 1;
 const uint16_t UI_STEPS_CONTENT_Y = 6;
+
+// Temp High
+const uint16_t UI_TEMP_HI_X = 4;
+const uint16_t UI_TEMP_HI_Y = 54;
+const uint16_t UI_TEMP_HI_W = 36;
+const uint16_t UI_TEMP_HI_H = 21;
+
+// Temp Current
+const uint16_t UI_TEMP_CUR_X = 4;
+const uint16_t UI_TEMP_CUR_Y = 79;
+const uint16_t UI_TEMP_CUR_W = 36;
+const uint16_t UI_TEMP_CUR_H = 21;
+
+// Temp Low
+const uint16_t UI_TEMP_LO_X = 4;
+const uint16_t UI_TEMP_LO_Y = 104;
+const uint16_t UI_TEMP_LO_W = 36;
+const uint16_t UI_TEMP_LO_H = 21;
+
+
 
 static struct tm s_current_time;
 static int s_current_steps = 0;
@@ -52,8 +75,10 @@ static BitmapLayer *s_bitmap_layer_time_m1_offset;
 static BitmapLayer *s_bitmap_layer_time_m2;
 
 static Layer *s_layer_date;
-
 static Layer *s_layer_steps;
+static TextLayer *s_layer_temp_high;
+static TextLayer *s_layer_temp_current;
+static TextLayer *s_layer_temp_low;
 
 int calculate_string_width_px(char *str, BitmapInfo *bitmapInfoArray, uint16_t spacing_px) {
   int total_width = 0;
@@ -239,6 +264,20 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_steps();
   // update_weather();
   // update_daylight();
+
+  // Request weather info
+  // if (tick_time->tm_min %30 == 0) {
+  if (tick_time->tm_min %1 == 0) {
+    // Begin dictionary
+    DictionaryIterator *iter;
+    app_message_outbox_begin(&iter);
+
+    // Add a key-value pair
+    dict_write_uint8(iter, 0, 0);
+
+    // Send the message!
+    app_message_outbox_send();
+  }
 }
 
 static void main_window_load(Window *window) {
@@ -285,7 +324,7 @@ static void main_window_load(Window *window) {
 
   // Bitmap Layers
   s_bitmap_layer_background = bitmap_layer_create(bounds);
-  s_bitmap_background = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BACKGROUND_STATIC_V3_2_NO_DATE_NO_STEPS);
+  s_bitmap_background = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BACKGROUND_STATIC_V3_2_NO_DATE_NO_STEPS_NO_WEATHER);
   bitmap_layer_set_bitmap(s_bitmap_layer_background, s_bitmap_background);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_background));
 
@@ -325,10 +364,30 @@ static void main_window_load(Window *window) {
   s_layer_steps = layer_create(GRect(UI_STEPS_X, UI_STEPS_Y, UI_STEPS_W, UI_STEPS_H));
   layer_set_update_proc(s_layer_steps, layer_steps_update_proc);
   layer_add_child(root_layer, s_layer_steps);
+
+  s_layer_temp_high = text_layer_create(GRect(UI_TEMP_HI_X, UI_TEMP_HI_Y, UI_TEMP_HI_W, UI_TEMP_HI_H));
+  text_layer_set_background_color(s_layer_temp_high, GColorClear);
+  text_layer_set_text_color(s_layer_temp_high, GColorWhite);
+  text_layer_set_text_alignment(s_layer_temp_high, GTextAlignmentCenter);
+  text_layer_set_text(s_layer_temp_high, "...");
+  layer_add_child(root_layer, text_layer_get_layer(s_layer_temp_high));
+
+  s_layer_temp_current = text_layer_create(GRect(UI_TEMP_CUR_X, UI_TEMP_CUR_Y, UI_TEMP_CUR_W, UI_TEMP_HI_H));
+  text_layer_set_background_color(s_layer_temp_current, GColorClear);
+  text_layer_set_text_color(s_layer_temp_current, GColorBlack);
+  text_layer_set_text_alignment(s_layer_temp_current, GTextAlignmentCenter);
+  text_layer_set_text(s_layer_temp_current, "...");
+  layer_add_child(root_layer, text_layer_get_layer(s_layer_temp_current));
+
+  s_layer_temp_low = text_layer_create(GRect(UI_TEMP_LO_X, UI_TEMP_LO_Y, UI_TEMP_LO_W, UI_TEMP_LO_H));
+  text_layer_set_background_color(s_layer_temp_low, GColorClear);
+  text_layer_set_text_color(s_layer_temp_low, GColorWhite);
+  text_layer_set_text_alignment(s_layer_temp_low, GTextAlignmentCenter);
+  text_layer_set_text(s_layer_temp_low, "...");
+  layer_add_child(root_layer, text_layer_get_layer(s_layer_temp_low));
 }
 
 static void main_window_unload(Window *window) {
-  // text_layer_destroy(s_text_layer);
   
   bitmap_layer_destroy(s_bitmap_layer_time_h1);
   bitmap_layer_destroy(s_bitmap_layer_time_h1_offset);
@@ -343,8 +402,10 @@ static void main_window_unload(Window *window) {
   }
 
   layer_destroy(s_layer_date);
-
   layer_destroy(s_layer_steps);
+  text_layer_destroy(s_layer_temp_high);
+  text_layer_destroy(s_layer_temp_current);
+  text_layer_destroy(s_layer_temp_low);
 
   array_length = sizeof(s_bitmap_numbers_xs_light) / sizeof(*s_bitmap_numbers_xs_light);
   for (size_t i = 0; i < array_length; i++) {
@@ -361,6 +422,50 @@ static void main_window_unload(Window *window) {
 
   gbitmap_destroy(s_bitmap_sun_index);
   bitmap_layer_destroy(s_bitmap_layer_sun_index);
+}
+
+static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
+  APP_LOG(APP_LOG_LEVEL_INFO, "Inbox received message!");
+
+  // Store incoming information
+  static char temp_hi_buffer[8];
+  static char temp_cur_buffer[8];
+  static char temp_lo_buffer[8];
+  // static char conditions_buffer[32];
+  // static char sunrise_buffer[32];
+  // static char sunset_buffer[32];
+
+  Tuple *temp_hi_tuple = dict_find(iterator, MESSAGE_KEY_TEMP_HI);
+  Tuple *temp_cur_tuple = dict_find(iterator, MESSAGE_KEY_TEMP_CUR);
+  Tuple *temp_lo_tuple = dict_find(iterator, MESSAGE_KEY_TEMP_LO);
+  // Tuple *conditions_tuple = dict_find(iterator, MESSAGE_KEY_CONDITIONS);
+  // Tuple *sunrise_tuple = dict_find(iterator, MESSAGE_KEY_SUNRISE);
+  // Tuple *sunset_tuple = dict_find(iterator, MESSAGE_KEY_SUNSET);
+
+  if (temp_hi_tuple) {
+    snprintf(temp_hi_buffer, sizeof(temp_hi_buffer), "%d°F", (int)temp_hi_tuple->value->int32);
+    text_layer_set_text(s_layer_temp_high, temp_hi_buffer);
+  }
+  if (temp_cur_tuple) {
+    snprintf(temp_cur_buffer, sizeof(temp_cur_buffer), "%d°F", (int)temp_cur_tuple->value->int32);
+    text_layer_set_text(s_layer_temp_current, temp_cur_buffer);
+  }
+  if (temp_lo_tuple) {
+    snprintf(temp_lo_buffer, sizeof(temp_lo_buffer), "%d°F", (int)temp_lo_tuple->value->int32);
+    text_layer_set_text(s_layer_temp_low, temp_lo_buffer);
+  }
+}
+
+static void inbox_dropped_callback(AppMessageResult reason, void *context) {
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
+}
+
+static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context) {
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed!");
+}
+
+static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
+  APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
 }
 
 static void init() {
@@ -381,6 +486,15 @@ static void init() {
   update_date(tick_time);
   update_sun_index(tick_time);
   update_steps();
+
+  app_message_register_inbox_received(inbox_received_callback);
+  app_message_register_inbox_dropped(inbox_dropped_callback);
+  app_message_register_outbox_failed(outbox_failed_callback);
+  app_message_register_outbox_sent(outbox_sent_callback);
+  // Open AppMessage
+  const int inbox_size = 128;
+  const int outbox_size = 128;
+  app_message_open(inbox_size, outbox_size);
 
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
   tick_handler(tick_time, MINUTE_UNIT);
