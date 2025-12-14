@@ -266,8 +266,8 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   // update_daylight();
 
   // Request weather info
-  // if (tick_time->tm_min %30 == 0) {
-  if (tick_time->tm_min %1 == 0) {
+  if (tick_time->tm_min %30 == 0) {
+  // if (tick_time->tm_min %1 == 0) {
     // Begin dictionary
     DictionaryIterator *iter;
     app_message_outbox_begin(&iter);
