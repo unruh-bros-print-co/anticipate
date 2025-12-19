@@ -1,6 +1,13 @@
 #include <pebble.h>
 #include "bitmap_info.h"
 
+const uint16_t S_WIDTH = 8;
+const uint16_t S_WIDTH_1 = 5;
+const uint16_t S_WIDTH_DASH = 4;
+const uint16_t S_WIDTH_DEGREE = 4;
+const uint16_t S_WIDTH_LOADING = 4;
+const uint16_t S_HEIGHT = 13;
+
 const uint16_t XS_WIDTH = 6;
 const uint16_t XS_WIDTH_1 = 4;
 const uint16_t XS_WIDTH_DASH = 4;
@@ -8,6 +15,8 @@ const uint16_t XS_HEIGHT = 10;
 
 // Special character indexes
 const uint16_t INDEX_DASH = 10; // '-'
+const uint16_t INDEX_DEGREE = 11; // '°'
+const uint16_t INDEX_LOADING = 12; // '...'
 
 // UI element dimensions
 
@@ -27,6 +36,11 @@ const uint16_t UI_STEPS_H = 21;
 const uint16_t UI_STEPS_SPACING = 1;
 const uint16_t UI_STEPS_CONTENT_Y = 6;
 
+// Temp (All)
+const uint16_t UI_TEMP_SPACING = 1;
+const uint16_t UI_TEMP_CONTENT_Y = 4;
+const uint16_t UI_TEMP_OFFSET = 1;
+
 // Temp High
 const uint16_t UI_TEMP_HI_X = 4;
 const uint16_t UI_TEMP_HI_Y = 54;
@@ -45,10 +59,14 @@ const uint16_t UI_TEMP_LO_Y = 104;
 const uint16_t UI_TEMP_LO_W = 36;
 const uint16_t UI_TEMP_LO_H = 21;
 
-
-
 static struct tm s_current_time;
 static int s_current_steps = 0;
+static bool s_temp_high_loading = true;
+static int s_temp_high = 0;
+static bool s_temp_current_loading = true;
+static int s_temp_current = 0;
+static bool s_temp_low_loading = true;
+static int s_temp_low = 0;
 
 static Window *s_main_window;
 // static TextLayer *s_text_layer;
@@ -62,6 +80,8 @@ static int s_sun_index_bitmap_height = 3;
 static GBitmap *s_bitmap_sun_index;
 
 static GBitmap *s_bitmap_numbers_lg[10];
+static BitmapInfo s_bitmap_numbers_s_light[13];
+static BitmapInfo s_bitmap_numbers_s_dark[13];
 static BitmapInfo s_bitmap_numbers_xs_light[11];
 static BitmapInfo s_bitmap_numbers_xs_dark[11];
 
@@ -76,9 +96,9 @@ static BitmapLayer *s_bitmap_layer_time_m2;
 
 static Layer *s_layer_date;
 static Layer *s_layer_steps;
-static TextLayer *s_layer_temp_high;
-static TextLayer *s_layer_temp_current;
-static TextLayer *s_layer_temp_low;
+static Layer *s_layer_temp_high;
+static Layer *s_layer_temp_current;
+static Layer *s_layer_temp_low;
 
 int calculate_string_width_px(char *str, BitmapInfo *bitmapInfoArray, uint16_t spacing_px) {
   int total_width = 0;
@@ -96,7 +116,13 @@ int calculate_string_width_px(char *str, BitmapInfo *bitmapInfoArray, uint16_t s
       }
       case '-':
         total_width += bitmapInfoArray[INDEX_DASH].width;
-        break;      
+        break;
+      case '*': // '°'
+        total_width += bitmapInfoArray[INDEX_DEGREE].width;
+        break;
+      case '~':
+        total_width += bitmapInfoArray[INDEX_LOADING].width;
+        break;
       default:
         break;
     }
@@ -130,6 +156,14 @@ void draw_string(GContext *ctx, char *str, int x_start, int y, BitmapInfo *bitma
       case '-':
         current_width = bitmapInfoArray[INDEX_DASH].width;
         graphics_draw_bitmap_in_rect(ctx, bitmapInfoArray[INDEX_DASH].gbitmap, GRect(x_current, y, bitmapInfoArray[INDEX_DASH].width, bitmapInfoArray[INDEX_DASH].height));
+        break;
+      case '*':
+        current_width = bitmapInfoArray[INDEX_DEGREE].width;
+        graphics_draw_bitmap_in_rect(ctx, bitmapInfoArray[INDEX_DEGREE].gbitmap, GRect(x_current, y, bitmapInfoArray[INDEX_DEGREE].width, bitmapInfoArray[INDEX_DEGREE].height));
+        break;
+      case '~':
+        current_width = bitmapInfoArray[INDEX_LOADING].width;
+        graphics_draw_bitmap_in_rect(ctx, bitmapInfoArray[INDEX_LOADING].gbitmap, GRect(x_current, y, bitmapInfoArray[INDEX_LOADING].width, bitmapInfoArray[INDEX_LOADING].height));
         break;
       default:
         break;
@@ -169,6 +203,75 @@ static void layer_steps_update_proc(Layer *layer, GContext *ctx) {
   int starting_x = (layer_width - steps_width) / 2;
 
   draw_string(ctx, steps_str, starting_x, UI_STEPS_CONTENT_Y, s_bitmap_numbers_xs_dark, UI_STEPS_SPACING);
+}
+
+static void layer_temp_high_update_proc(Layer *layer, GContext *ctx) {
+  static char temp_high_str[] = "-2000°";
+  if (s_temp_high_loading) {
+    strcpy(temp_high_str, "~");
+  }
+  else {
+    snprintf(temp_high_str, sizeof(temp_high_str), "%d*", s_temp_high);
+  }
+
+  graphics_context_set_compositing_mode(ctx, GCompOpSet);
+  GRect bounds = layer_get_bounds(layer);
+  int layer_width = bounds.size.w;
+
+  int temp_high_width = calculate_string_width_px(temp_high_str, s_bitmap_numbers_s_light, UI_TEMP_SPACING);
+
+  int starting_x = (layer_width - temp_high_width) / 2;
+
+  // Ignore width of degree symbol
+  starting_x += UI_TEMP_OFFSET;
+
+  draw_string(ctx, temp_high_str, starting_x, UI_TEMP_CONTENT_Y, s_bitmap_numbers_s_light, UI_TEMP_SPACING);
+}
+
+static void layer_temp_current_update_proc(Layer *layer, GContext *ctx) {
+  static char temp_current_str[] = "-2000°";
+  if (s_temp_current_loading) {
+    strcpy(temp_current_str, "~");
+  }
+  else {
+    snprintf(temp_current_str, sizeof(temp_current_str), "%d*", s_temp_current);
+  }
+
+  graphics_context_set_compositing_mode(ctx, GCompOpSet);
+  GRect bounds = layer_get_bounds(layer);
+  int layer_width = bounds.size.w;
+
+  int temp_current_width = calculate_string_width_px(temp_current_str, s_bitmap_numbers_s_dark, UI_TEMP_SPACING);
+
+  int starting_x = (layer_width - temp_current_width) / 2;
+
+  // Ignore width of degree symbol
+  starting_x += UI_TEMP_OFFSET;
+
+  draw_string(ctx, temp_current_str, starting_x, UI_TEMP_CONTENT_Y, s_bitmap_numbers_s_dark, UI_TEMP_SPACING);
+}
+
+static void layer_temp_low_update_proc(Layer *layer, GContext *ctx) {
+  static char temp_low_str[] = "-2000°";
+  if (s_temp_low_loading) {
+    strcpy(temp_low_str, "~");
+  }
+  else {
+    snprintf(temp_low_str, sizeof(temp_low_str), "%d*", s_temp_low);
+  }
+
+  graphics_context_set_compositing_mode(ctx, GCompOpSet);
+  GRect bounds = layer_get_bounds(layer);
+  int layer_width = bounds.size.w;
+
+  int temp_low_width = calculate_string_width_px(temp_low_str, s_bitmap_numbers_s_light, UI_TEMP_SPACING);
+
+  int starting_x = (layer_width - temp_low_width) / 2;
+
+  // Ignore width of degree symbol
+  starting_x += UI_TEMP_OFFSET;
+
+  draw_string(ctx, temp_low_str, starting_x, UI_TEMP_CONTENT_Y, s_bitmap_numbers_s_light, UI_TEMP_SPACING);
 }
 
 static void update_time(struct tm *tick_time) {
@@ -262,8 +365,6 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_date(tick_time);
   update_sun_index(tick_time);
   update_steps();
-  // update_weather();
-  // update_daylight();
 
   // Request weather info
   if (tick_time->tm_min %30 == 0) {
@@ -276,7 +377,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
     dict_write_uint8(iter, 0, 0);
 
     // Send the message!
-    app_message_outbox_send();
+    app_message_outbox_send(); // This requests the latest weather and daylight
   }
 }
 
@@ -295,6 +396,36 @@ static void main_window_load(Window *window) {
   s_bitmap_numbers_lg[7] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_7);
   s_bitmap_numbers_lg[8] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_8);
   s_bitmap_numbers_lg[9] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_9_V4);
+
+  // S Light
+  s_bitmap_numbers_s_light[0] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_0_LIGHT), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_light[1] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_1_LIGHT), .width = S_WIDTH_1, .height = S_HEIGHT};
+  s_bitmap_numbers_s_light[2] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_2_LIGHT), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_light[3] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_3_LIGHT), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_light[4] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_4_LIGHT), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_light[5] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_5_LIGHT), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_light[6] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_6_LIGHT), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_light[7] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_7_LIGHT), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_light[8] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_8_LIGHT), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_light[9] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_9_LIGHT), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_light[INDEX_DASH] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_DASH_LIGHT), .width = S_WIDTH_DASH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_light[INDEX_DEGREE] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_DEGREE_LIGHT), .width = S_WIDTH_DEGREE, .height = S_HEIGHT};
+  s_bitmap_numbers_s_light[INDEX_LOADING] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_LOADING_LIGHT), .width = S_WIDTH_LOADING, .height = S_HEIGHT};
+
+  // S Dark
+  s_bitmap_numbers_s_dark[0] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_0_DARK), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_dark[1] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_1_DARK), .width = S_WIDTH_1, .height = S_HEIGHT};
+  s_bitmap_numbers_s_dark[2] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_2_DARK), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_dark[3] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_3_DARK), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_dark[4] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_4_DARK), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_dark[5] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_5_DARK), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_dark[6] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_6_DARK), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_dark[7] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_7_DARK), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_dark[8] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_8_DARK), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_dark[9] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_9_DARK), .width = S_WIDTH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_dark[INDEX_DASH] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_DASH_DARK), .width = S_WIDTH_DASH, .height = S_HEIGHT};
+  s_bitmap_numbers_s_dark[INDEX_DEGREE] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_DEGREE_DARK), .width = S_WIDTH_DEGREE, .height = S_HEIGHT};
+  s_bitmap_numbers_s_dark[INDEX_LOADING] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_LOADING_DARK), .width = S_WIDTH_LOADING, .height = S_HEIGHT};
 
   // XS Light
   s_bitmap_numbers_xs_light[0] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_0_LIGHT), .width = XS_WIDTH, .height = XS_HEIGHT};
@@ -365,26 +496,17 @@ static void main_window_load(Window *window) {
   layer_set_update_proc(s_layer_steps, layer_steps_update_proc);
   layer_add_child(root_layer, s_layer_steps);
 
-  s_layer_temp_high = text_layer_create(GRect(UI_TEMP_HI_X, UI_TEMP_HI_Y, UI_TEMP_HI_W, UI_TEMP_HI_H));
-  text_layer_set_background_color(s_layer_temp_high, GColorClear);
-  text_layer_set_text_color(s_layer_temp_high, GColorWhite);
-  text_layer_set_text_alignment(s_layer_temp_high, GTextAlignmentCenter);
-  text_layer_set_text(s_layer_temp_high, "...");
-  layer_add_child(root_layer, text_layer_get_layer(s_layer_temp_high));
+  s_layer_temp_high = layer_create(GRect(UI_TEMP_HI_X, UI_TEMP_HI_Y, UI_TEMP_HI_W, UI_TEMP_HI_H));
+  layer_set_update_proc(s_layer_temp_high, layer_temp_high_update_proc);
+  layer_add_child(root_layer, s_layer_temp_high);
 
-  s_layer_temp_current = text_layer_create(GRect(UI_TEMP_CUR_X, UI_TEMP_CUR_Y, UI_TEMP_CUR_W, UI_TEMP_HI_H));
-  text_layer_set_background_color(s_layer_temp_current, GColorClear);
-  text_layer_set_text_color(s_layer_temp_current, GColorBlack);
-  text_layer_set_text_alignment(s_layer_temp_current, GTextAlignmentCenter);
-  text_layer_set_text(s_layer_temp_current, "...");
-  layer_add_child(root_layer, text_layer_get_layer(s_layer_temp_current));
+  s_layer_temp_current = layer_create(GRect(UI_TEMP_CUR_X, UI_TEMP_CUR_Y, UI_TEMP_CUR_W, UI_TEMP_HI_H));
+  layer_set_update_proc(s_layer_temp_current, layer_temp_current_update_proc);
+  layer_add_child(root_layer, s_layer_temp_current);
 
-  s_layer_temp_low = text_layer_create(GRect(UI_TEMP_LO_X, UI_TEMP_LO_Y, UI_TEMP_LO_W, UI_TEMP_LO_H));
-  text_layer_set_background_color(s_layer_temp_low, GColorClear);
-  text_layer_set_text_color(s_layer_temp_low, GColorWhite);
-  text_layer_set_text_alignment(s_layer_temp_low, GTextAlignmentCenter);
-  text_layer_set_text(s_layer_temp_low, "...");
-  layer_add_child(root_layer, text_layer_get_layer(s_layer_temp_low));
+  s_layer_temp_low = layer_create(GRect(UI_TEMP_LO_X, UI_TEMP_LO_Y, UI_TEMP_LO_W, UI_TEMP_LO_H));
+  layer_set_update_proc(s_layer_temp_low, layer_temp_low_update_proc);
+  layer_add_child(root_layer, s_layer_temp_low);
 }
 
 static void main_window_unload(Window *window) {
@@ -403,9 +525,19 @@ static void main_window_unload(Window *window) {
 
   layer_destroy(s_layer_date);
   layer_destroy(s_layer_steps);
-  text_layer_destroy(s_layer_temp_high);
-  text_layer_destroy(s_layer_temp_current);
-  text_layer_destroy(s_layer_temp_low);
+  layer_destroy(s_layer_temp_high);
+  layer_destroy(s_layer_temp_current);
+  layer_destroy(s_layer_temp_low);
+
+  array_length = sizeof(s_bitmap_numbers_s_light) / sizeof(*s_bitmap_numbers_s_light);
+  for (size_t i = 0; i < array_length; i++) {
+    gbitmap_destroy(s_bitmap_numbers_s_light[i].gbitmap);
+  }
+
+  array_length = sizeof(s_bitmap_numbers_s_dark) / sizeof(*s_bitmap_numbers_s_dark);
+  for (size_t i = 0; i < array_length; i++) {
+    gbitmap_destroy(s_bitmap_numbers_s_dark[i].gbitmap);
+  }
 
   array_length = sizeof(s_bitmap_numbers_xs_light) / sizeof(*s_bitmap_numbers_xs_light);
   for (size_t i = 0; i < array_length; i++) {
@@ -443,16 +575,19 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   // Tuple *sunset_tuple = dict_find(iterator, MESSAGE_KEY_SUNSET);
 
   if (temp_hi_tuple) {
-    snprintf(temp_hi_buffer, sizeof(temp_hi_buffer), "%d°F", (int)temp_hi_tuple->value->int32);
-    text_layer_set_text(s_layer_temp_high, temp_hi_buffer);
+    s_temp_high = (int)temp_hi_tuple->value->int32;
+    s_temp_high_loading = false;
+    layer_mark_dirty(s_layer_temp_high);
   }
   if (temp_cur_tuple) {
-    snprintf(temp_cur_buffer, sizeof(temp_cur_buffer), "%d°F", (int)temp_cur_tuple->value->int32);
-    text_layer_set_text(s_layer_temp_current, temp_cur_buffer);
+    s_temp_current = (int)temp_cur_tuple->value->int32;
+    s_temp_current_loading = false;
+    layer_mark_dirty(s_layer_temp_current);
   }
   if (temp_lo_tuple) {
-    snprintf(temp_lo_buffer, sizeof(temp_lo_buffer), "%d°F", (int)temp_lo_tuple->value->int32);
-    text_layer_set_text(s_layer_temp_low, temp_lo_buffer);
+    s_temp_low = (int)temp_lo_tuple->value->int32;
+    s_temp_low_loading = false;
+    layer_mark_dirty(s_layer_temp_low);
   }
 }
 

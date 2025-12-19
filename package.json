@@ -137,6 +137,136 @@
         },
         {
           "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_0_DARK",
+          "file": "images/num-s-0-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_0_LIGHT",
+          "file": "images/num-s-0-light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_1_DARK",
+          "file": "images/num-s-1-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_1_LIGHT",
+          "file": "images/num-s-1-light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_2_DARK",
+          "file": "images/num-s-2-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_2_LIGHT",
+          "file": "images/num-s-2-light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_3_DARK",
+          "file": "images/num-s-3-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_3_LIGHT",
+          "file": "images/num-s-3-light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_4_DARK",
+          "file": "images/num-s-4-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_4_LIGHT",
+          "file": "images/num-s-4-light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_5_DARK",
+          "file": "images/num-s-5-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_5_LIGHT",
+          "file": "images/num-s-5-light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_6_DARK",
+          "file": "images/num-s-6-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_6_LIGHT",
+          "file": "images/num-s-6-light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_7_DARK",
+          "file": "images/num-s-7-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_7_LIGHT",
+          "file": "images/num-s-7-light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_8_DARK",
+          "file": "images/num-s-8-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_8_LIGHT",
+          "file": "images/num-s-8-light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_9_DARK",
+          "file": "images/num-s-9-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_9_LIGHT",
+          "file": "images/num-s-9-light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_DASH_DARK",
+          "file": "images/num-s-dash-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_DASH_LIGHT",
+          "file": "images/num-s-dash-light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_DEGREE_DARK",
+          "file": "images/num-s-degree-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_DEGREE_LIGHT",
+          "file": "images/num-s-degree-light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_LOADING_DARK",
+          "file": "images/num-s-loading-dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_S_LOADING_LIGHT",
+          "file": "images/num-s-loading-light.png"
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_NUMBER_XS_0_DARK",
           "file": "images/num-xs-0-dark.png"
         },
