@@ -1,6 +1,14 @@
 #include <pebble.h>
 #include "bitmap_info.h"
 
+const uint16_t L_TENS_X = 44;
+const uint16_t L_TENS_X_OFFSET = 17;
+const uint16_t L_ONES_X = 94;
+const uint16_t L_HOURS_Y = 4;
+const uint16_t L_MINUTES_Y = 79;
+const uint16_t L_WIDTH = 46; 
+const uint16_t L_HEIGHT = 71;
+
 const uint16_t S_WIDTH = 8;
 const uint16_t S_WIDTH_1 = 5;
 const uint16_t S_WIDTH_DASH = 4;
@@ -387,7 +395,7 @@ static void main_window_load(Window *window) {
 
   // Load Bitmaps
   s_bitmap_numbers_lg[0] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_0);
-  s_bitmap_numbers_lg[1] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_1_V2);
+  s_bitmap_numbers_lg[1] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_1_V3);
   s_bitmap_numbers_lg[2] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_2);
   s_bitmap_numbers_lg[3] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_3);
   s_bitmap_numbers_lg[4] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_4_V2);
@@ -464,27 +472,27 @@ static void main_window_load(Window *window) {
   bitmap_layer_set_bitmap(s_bitmap_layer_sun_index, s_bitmap_sun_index);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_sun_index));
 
-  s_bitmap_layer_time_h1 = bitmap_layer_create(GRect(44, 4, 46, 71));
+  s_bitmap_layer_time_h1 = bitmap_layer_create(GRect(L_TENS_X, L_HOURS_Y, L_WIDTH, L_HEIGHT));
   bitmap_layer_set_alignment(s_bitmap_layer_time_h1, GAlignRight);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_time_h1));
   
-  s_bitmap_layer_time_h1_offset = bitmap_layer_create(GRect(65, 4, 46, 71)); // offset by 21px
+  s_bitmap_layer_time_h1_offset = bitmap_layer_create(GRect((L_TENS_X + L_TENS_X_OFFSET), L_HOURS_Y, L_WIDTH, L_HEIGHT)); // offset when ones place is a '1' since it's not as wide.
   bitmap_layer_set_alignment(s_bitmap_layer_time_h1_offset, GAlignRight);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_time_h1_offset));
   
-  s_bitmap_layer_time_h2 = bitmap_layer_create(GRect(94, 4, 46, 71));
+  s_bitmap_layer_time_h2 = bitmap_layer_create(GRect(L_ONES_X, L_HOURS_Y, L_WIDTH, L_HEIGHT));
   bitmap_layer_set_alignment(s_bitmap_layer_time_h2, GAlignRight);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_time_h2));
   
-  s_bitmap_layer_time_m1 = bitmap_layer_create(GRect(44, 79, 46, 71));
+  s_bitmap_layer_time_m1 = bitmap_layer_create(GRect(L_TENS_X, L_MINUTES_Y, L_WIDTH, L_HEIGHT));
   bitmap_layer_set_alignment(s_bitmap_layer_time_m1, GAlignRight);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_time_m1));
   
-  s_bitmap_layer_time_m1_offset = bitmap_layer_create(GRect(65, 79, 46, 71)); // offset by 21px
+  s_bitmap_layer_time_m1_offset = bitmap_layer_create(GRect((L_TENS_X + L_TENS_X_OFFSET), L_MINUTES_Y, L_WIDTH, L_HEIGHT)); // offset when ones place is a '1' since it's not as wide.
   bitmap_layer_set_alignment(s_bitmap_layer_time_m1_offset, GAlignRight);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_time_m1_offset));
   
-  s_bitmap_layer_time_m2 = bitmap_layer_create(GRect(94, 79, 46, 71));
+  s_bitmap_layer_time_m2 = bitmap_layer_create(GRect(L_ONES_X, L_MINUTES_Y, L_WIDTH, L_HEIGHT));
   bitmap_layer_set_alignment(s_bitmap_layer_time_m2, GAlignRight);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_time_m2));
 
