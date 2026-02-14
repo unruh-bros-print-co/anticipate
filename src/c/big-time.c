@@ -67,6 +67,12 @@ const uint16_t UI_TEMP_LO_Y = 104;
 const uint16_t UI_TEMP_LO_W = 36;
 const uint16_t UI_TEMP_LO_H = 21;
 
+// Conditions
+const uint16_t UI_CONDITIONS_X = 4;
+const uint16_t UI_CONDITIONS_Y = 128;
+const uint16_t UI_CONDITIONS_W = 36;
+const uint16_t UI_CONDITIONS_H = 36;
+
 static struct tm s_current_time;
 static int s_current_steps = 0;
 static bool s_temp_high_loading = true;
@@ -75,6 +81,9 @@ static bool s_temp_current_loading = true;
 static int s_temp_current = 0;
 static bool s_temp_low_loading = true;
 static int s_temp_low = 0;
+static long s_sunrise_seconds = 0;
+static long s_sunset_seconds = 0;
+static char s_condition[50];
 
 static Window *s_main_window;
 // static TextLayer *s_text_layer;
@@ -107,6 +116,9 @@ static Layer *s_layer_steps;
 static Layer *s_layer_temp_high;
 static Layer *s_layer_temp_current;
 static Layer *s_layer_temp_low;
+
+static GBitmap *s_bitmap_conditions[10];
+static BitmapLayer *s_bitmap_layer_conditions;
 
 int calculate_string_width_px(char *str, BitmapInfo *bitmapInfoArray, uint16_t spacing_px) {
   int total_width = 0;
@@ -366,6 +378,83 @@ static void update_steps() {
   #endif
 }
 
+static time_t get_midnight_today() {
+  // 1. Get the current time
+  time_t now = time(NULL);
+  
+  // 2. Convert to struct tm (Local Time)
+  struct tm *t = localtime(&now);
+  
+  // 3. Set time to 00:00:00
+  t->tm_sec = 0;
+  t->tm_min = 0;
+  t->tm_hour = 0;
+  
+  // 4. Optional: Ensure daylight savings flag is handled automatically
+  t->tm_isdst = -1; 
+  
+  // 5. Convert back to seconds since epoch
+  return mktime(t);
+}
+
+static bool is_night() {
+  time_t midnight_today = get_midnight_today();
+  if (s_sunrise_seconds > midnight_today && s_sunset_seconds > midnight_today) {
+    time_t now = time(NULL);
+    return (now < s_sunrise_seconds || now > s_sunset_seconds);
+  }
+  else {
+    // old sunrise/sunset values - return true
+    return false;
+  }
+}
+
+static void update_conditions() {
+
+  if (strcmp(s_condition, "CLEAR") == 0) {
+    if (is_night()) {
+      bitmap_layer_set_bitmap(s_bitmap_layer_conditions, s_bitmap_conditions[1]); // moon
+    }
+    else {
+      bitmap_layer_set_bitmap(s_bitmap_layer_conditions, s_bitmap_conditions[0]); // sun
+    }
+  }
+  else if (strcmp(s_condition, "PARTLY_CLOUDY") == 0) {
+    if (is_night()) {
+      bitmap_layer_set_bitmap(s_bitmap_layer_conditions, s_bitmap_conditions[3]); // moon-clouds
+    }
+    else {
+      bitmap_layer_set_bitmap(s_bitmap_layer_conditions, s_bitmap_conditions[2]); // sun-clouds
+    }
+  }
+  else if (strcmp(s_condition, "CLOUDS") == 0) {
+    bitmap_layer_set_bitmap(s_bitmap_layer_conditions, s_bitmap_conditions[4]);
+  }
+  
+  else if (strcmp(s_condition, "DRIZZLE") == 0) {
+    bitmap_layer_set_bitmap(s_bitmap_layer_conditions, s_bitmap_conditions[5]);
+  }
+  
+  else if (strcmp(s_condition, "RAIN") == 0) {
+    bitmap_layer_set_bitmap(s_bitmap_layer_conditions, s_bitmap_conditions[6]);
+  }
+  
+  else if (strcmp(s_condition, "SNOW") == 0) {
+    bitmap_layer_set_bitmap(s_bitmap_layer_conditions, s_bitmap_conditions[7]);
+  }
+  
+  else if (strcmp(s_condition, "THUNDERSTORM") == 0) {
+    bitmap_layer_set_bitmap(s_bitmap_layer_conditions, s_bitmap_conditions[8]);
+  }
+  
+  else if (strcmp(s_condition, "ATMOSPHERE") == 0) {
+    bitmap_layer_set_bitmap(s_bitmap_layer_conditions, s_bitmap_conditions[9]);
+  }
+  else {
+    bitmap_layer_set_bitmap(s_bitmap_layer_conditions, NULL);
+  }
+}
+
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   s_current_time = *tick_time;
 
@@ -394,6 +483,8 @@ static void main_window_load(Window *window) {
   GRect bounds = layer_get_bounds(root_layer);
 
   // Load Bitmaps
+
+  // LG
   s_bitmap_numbers_lg[0] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_0);
   s_bitmap_numbers_lg[1] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_1_V3);
   s_bitmap_numbers_lg[2] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_2);
@@ -461,9 +552,20 @@ static void main_window_load(Window *window) {
   s_bitmap_numbers_xs_dark[9] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_9_DARK), .width = XS_WIDTH, .height = XS_HEIGHT};
   s_bitmap_numbers_xs_dark[INDEX_DASH] =(BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_DASH_DARK), .width = XS_WIDTH_DASH, .height = XS_HEIGHT};
 
+  s_bitmap_conditions[0] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CONDITION_CLEAR_SUN_LIGHT);
+  s_bitmap_conditions[1] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CONDITION_CLEAR_MOON_LIGHT);
+  s_bitmap_conditions[2] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CONDITION_PARTLY_CLOUDY_SUN_LIGHT);
+  s_bitmap_conditions[3] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CONDITION_PARTLY_CLOUDY_MOON_LIGHT);
+  s_bitmap_conditions[4] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CONDITION_CLOUDS_LIGHT);
+  s_bitmap_conditions[5] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CONDITION_DRIZZLE_LIGHT);
+  s_bitmap_conditions[6] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CONDITION_RAIN_LIGHT);
+  s_bitmap_conditions[7] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CONDITION_SNOW_LIGHT);
+  s_bitmap_conditions[8] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CONDITION_THUNDERSTORM_LIGHT);
+  s_bitmap_conditions[9] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CONDITION_ATMOSPHERE_LIGHT);
+
   // Bitmap Layers
   s_bitmap_layer_background = bitmap_layer_create(bounds);
-  s_bitmap_background = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BACKGROUND_STATIC_V3_2_NO_DATE_NO_STEPS_NO_WEATHER);
+  s_bitmap_background = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BACKGROUND_STATIC_V8_CONDITIONS);
   bitmap_layer_set_bitmap(s_bitmap_layer_background, s_bitmap_background);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_background));
 
@@ -515,6 +617,9 @@ static void main_window_load(Window *window) {
   s_layer_temp_low = layer_create(GRect(UI_TEMP_LO_X, UI_TEMP_LO_Y, UI_TEMP_LO_W, UI_TEMP_LO_H));
   layer_set_update_proc(s_layer_temp_low, layer_temp_low_update_proc);
   layer_add_child(root_layer, s_layer_temp_low);
+
+  s_bitmap_layer_conditions = bitmap_layer_create(GRect(UI_CONDITIONS_X, UI_CONDITIONS_Y, UI_CONDITIONS_W, UI_CONDITIONS_H));
+  layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_conditions));
 }
 
 static void main_window_unload(Window *window) {
@@ -557,30 +662,28 @@ static void main_window_unload(Window *window) {
     gbitmap_destroy(s_bitmap_numbers_xs_dark[i].gbitmap);
   }
 
-  gbitmap_destroy(s_bitmap_background);
-  bitmap_layer_destroy(s_bitmap_layer_background);
+  array_length = sizeof(s_bitmap_conditions) / sizeof(*s_bitmap_conditions);
+  for (size_t i = 0; i < array_length; i++) {
+    gbitmap_destroy(s_bitmap_conditions[i]);
+  }
+  bitmap_layer_destroy(s_bitmap_layer_conditions);
 
   gbitmap_destroy(s_bitmap_sun_index);
   bitmap_layer_destroy(s_bitmap_layer_sun_index);
+
+  gbitmap_destroy(s_bitmap_background);
+  bitmap_layer_destroy(s_bitmap_layer_background);
 }
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Inbox received message!");
 
-  // Store incoming information
-  static char temp_hi_buffer[8];
-  static char temp_cur_buffer[8];
-  static char temp_lo_buffer[8];
-  // static char conditions_buffer[32];
-  // static char sunrise_buffer[32];
-  // static char sunset_buffer[32];
-
   Tuple *temp_hi_tuple = dict_find(iterator, MESSAGE_KEY_TEMP_HI);
   Tuple *temp_cur_tuple = dict_find(iterator, MESSAGE_KEY_TEMP_CUR);
   Tuple *temp_lo_tuple = dict_find(iterator, MESSAGE_KEY_TEMP_LO);
-  // Tuple *conditions_tuple = dict_find(iterator, MESSAGE_KEY_CONDITIONS);
-  // Tuple *sunrise_tuple = dict_find(iterator, MESSAGE_KEY_SUNRISE);
-  // Tuple *sunset_tuple = dict_find(iterator, MESSAGE_KEY_SUNSET);
+  Tuple *conditions_tuple = dict_find(iterator, MESSAGE_KEY_CONDITIONS);
+  Tuple *sunrise_tuple = dict_find(iterator, MESSAGE_KEY_SUNRISE);
+  Tuple *sunset_tuple = dict_find(iterator, MESSAGE_KEY_SUNSET);
 
   if (temp_hi_tuple) {
     s_temp_high = (int)temp_hi_tuple->value->int32;
@@ -596,6 +699,17 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     s_temp_low = (int)temp_lo_tuple->value->int32;
     s_temp_low_loading = false;
     layer_mark_dirty(s_layer_temp_low);
+  }
+  if (sunrise_tuple) {
+    s_sunrise_seconds = (int)sunrise_tuple->value->int32;
+  }
+  if (sunset_tuple) {
+    s_sunset_seconds = (int)sunset_tuple->value->int32;
+  }
+  if (conditions_tuple) {
+    snprintf(s_condition, sizeof(s_condition), "%s", conditions_tuple->value->cstring);
+    APP_LOG(APP_LOG_LEVEL_INFO, "RECEIVED CONDITION: %s", s_condition);
+    update_conditions();
   }
 }
 

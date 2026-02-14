@@ -50,15 +50,44 @@ function locationSuccess(pos) {
             console.log('Temp Low:' + temp_min);
 
             // Conditions
-            var conditions = json.weather[0].main;
+            var conditions = null;
+            var conditionId = json.weather[0].id;
+            console.log('Condition ID: ' + conditionId);
+            var conditionIndex = conditionId / 100;
+            console.log('Condition Index: ' + conditionIndex);
+            switch(conditionIndex) {
+                case 2:
+                    conditions = 'THUNDERSTORM';
+                    break;
+                case 3:
+                    conditions = 'DRIZZLE';
+                    break;
+                case 5:
+                    conditions = 'RAIN';
+                    break;
+                case 6:
+                    conditions = 'SNOW';
+                    break;
+                case 7:
+                    conditions = 'ATMOSPHERE';
+                    break;
+                case 8:
+                    conditions = 
+                        conditionId === 800 ? 'CLEAR' : 
+                        conditionId === 801 ? 'PARTLY_CLOUDY' : 'CLOUDS';
+                    break;
+                default:
+                    conditions = null;
+                    break;                
+            }
             console.log('Conditions: ' + conditions);
 
             // Sunrise / Sunset
-            var sunrise = json.sys.sunrise * 1000;
-            console.log('Sunrise: ' + new Date(sunrise).toString());
+            var sunrise = json.sys.sunrise; // seconds!
+            console.log('Sunrise: ' + new Date(sunrise * 1000).toString());
 
-            var sunset = json.sys.sunset * 1000;
-            console.log('Sunset: ' + new Date(sunset).toString());
+            var sunset = json.sys.sunset; // seconds!
+            console.log('Sunset: ' + new Date(sunset * 1000).toString());
 
             var dictionary = {
                 'TEMP_HI': temp_max,
