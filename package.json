@@ -377,6 +377,65 @@
         },
         {
           "type": "bitmap",
+          "name": "IMAGE_CONDITION_CLEAR_SUN_LIGHT",
+          "file": "images/icon-condition-clear-sun-light.png"
+        },
+        
+        {
+          "type": "bitmap",
+          "name": "IMAGE_CONDITION_CLEAR_MOON_LIGHT",
+          "file": "images/icon-condition-clear-moon-light.png"
+        },
+        
+        {
+          "type": "bitmap",
+          "name": "IMAGE_CONDITION_PARTLY_CLOUDY_SUN_LIGHT",
+          "file": "images/icon-condition-partly-cloudy-sun-light.png"
+        },
+        
+        {
+          "type": "bitmap",
+          "name": "IMAGE_CONDITION_PARTLY_CLOUDY_MOON_LIGHT",
+          "file": "images/icon-condition-partly-cloudy-moon-light.png"
+        },
+        
+        {
+          "type": "bitmap",
+          "name": "IMAGE_CONDITION_CLOUDS_LIGHT",
+          "file": "images/icon-condition-clouds-light.png"
+        },
+        
+        {
+          "type": "bitmap",
+          "name": "IMAGE_CONDITION_DRIZZLE_LIGHT",
+          "file": "images/icon-condition-drizzle-light.png"
+        },
+        
+        {
+          "type": "bitmap",
+          "name": "IMAGE_CONDITION_RAIN_LIGHT",
+          "file": "images/icon-condition-rain-light.png"
+        },
+        
+        {
+          "type": "bitmap",
+          "name": "IMAGE_CONDITION_SNOW_LIGHT",
+          "file": "images/icon-condition-snow-light.png"
+        },
+        
+        {
+          "type": "bitmap",
+          "name": "IMAGE_CONDITION_THUNDERSTORM_LIGHT",
+          "file": "images/icon-condition-thunderstorm-light.png"
+        },
+        
+        {
+          "type": "bitmap",
+          "name": "IMAGE_CONDITION_ATMOSPHERE_LIGHT",
+          "file": "images/icon-condition-atmosphere-light.png"
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_NUMBER_XS_DASH_LIGHT",
           "file": "images/num-xs-dash-light.png"
         },
@@ -429,6 +488,11 @@
           "type": "bitmap",
           "name": "IMAGE_BACKGROUND_STATIC_V7",
           "file": "images/background-static-v7.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_BACKGROUND_STATIC_V8_CONDITIONS",
+          "file": "images/background-static-v8-conditions.png"
         },
         {
           "type": "bitmap",
