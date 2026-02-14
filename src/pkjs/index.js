@@ -53,7 +53,7 @@ function locationSuccess(pos) {
             var conditions = null;
             var conditionId = json.weather[0].id;
             console.log('Condition ID: ' + conditionId);
-            var conditionIndex = conditionId / 100;
+            var conditionIndex = Math.floor(conditionId / 100);
             console.log('Condition Index: ' + conditionIndex);
             switch(conditionIndex) {
                 case 2:
