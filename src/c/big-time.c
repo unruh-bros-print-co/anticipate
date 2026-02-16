@@ -453,6 +453,8 @@ static void update_conditions() {
   else {
     bitmap_layer_set_bitmap(s_bitmap_layer_conditions, NULL);
   }
+
+  layer_mark_dirty(bitmap_layer_get_layer(s_bitmap_layer_conditions));
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
@@ -619,6 +621,16 @@ static void main_window_load(Window *window) {
   layer_add_child(root_layer, s_layer_temp_low);
 
   s_bitmap_layer_conditions = bitmap_layer_create(GRect(UI_CONDITIONS_X, UI_CONDITIONS_Y, UI_CONDITIONS_W, UI_CONDITIONS_H));
+  bitmap_layer_set_background_color(s_bitmap_layer_conditions, GColorClear);
+
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Test Log Message ***");
+  // Target the "Advanced" graphics engine (Diorite/Time/Round)
+  #if defined(PBL_SDK_3) || defined(PBL_COLOR) || defined(PBL_PLATFORM_DIORITE)
+      bitmap_layer_set_compositing_mode(s_bitmap_layer_conditions, GCompOpSet);
+  #else
+      // Fallback for the original 1-bit Pebble (Aplite)
+      bitmap_layer_set_compositing_mode(s_bitmap_layer_conditions, GCompOpOr);
+  #endif
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_conditions));
 }
 
