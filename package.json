@@ -117,6 +117,11 @@
         },
         {
           "type": "bitmap",
+          "name": "IMAGE_NUMBER_LG_7_V2",
+          "file": "images/num-lg-7-v2.png"
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_NUMBER_LG_8",
           "file": "images/num-lg-8.png"
         },
