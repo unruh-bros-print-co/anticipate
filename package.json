@@ -383,7 +383,7 @@
         {
           "type": "png",
           "name": "IMAGE_CONDITION_CLEAR_SUN_LIGHT",
-          "file": "images/icon-condition-clear-sun-light.png"
+          "file": "images/icon-condition-clear-sun-light-v2.png"
         },
         
         {
@@ -395,49 +395,49 @@
         {
           "type": "png",
           "name": "IMAGE_CONDITION_PARTLY_CLOUDY_SUN_LIGHT",
-          "file": "images/icon-condition-partly-cloudy-sun-light.png"
+          "file": "images/icon-condition-partly-cloudy-sun-light-v2.png"
         },
         
         {
           "type": "png",
           "name": "IMAGE_CONDITION_PARTLY_CLOUDY_MOON_LIGHT",
-          "file": "images/icon-condition-partly-cloudy-moon-light.png"
+          "file": "images/icon-condition-partly-cloudy-moon-light-v2.png"
         },
         
         {
           "type": "png",
           "name": "IMAGE_CONDITION_CLOUDS_LIGHT",
-          "file": "images/icon-condition-clouds-light.png"
+          "file": "images/icon-condition-clouds-light-v2.png"
         },
         
         {
           "type": "png",
           "name": "IMAGE_CONDITION_DRIZZLE_LIGHT",
-          "file": "images/icon-condition-drizzle-light.png"
+          "file": "images/icon-condition-drizzle-light-v2.png"
         },
         
         {
           "type": "png",
           "name": "IMAGE_CONDITION_RAIN_LIGHT",
-          "file": "images/icon-condition-rain-light.png"
+          "file": "images/icon-condition-rain-light-v2.png"
         },
         
         {
           "type": "png",
           "name": "IMAGE_CONDITION_SNOW_LIGHT",
-          "file": "images/icon-condition-snow-light.png"
+          "file": "images/icon-condition-snow-light-v2.png"
         },
         
         {
           "type": "png",
           "name": "IMAGE_CONDITION_THUNDERSTORM_LIGHT",
-          "file": "images/icon-condition-thunderstorm-light.png"
+          "file": "images/icon-condition-thunderstorm-light-v2.png"
         },
         
         {
           "type": "png",
           "name": "IMAGE_CONDITION_ATMOSPHERE_LIGHT",
-          "file": "images/icon-condition-atmosphere-light.png"
+          "file": "images/icon-condition-atmosphere-light-v2.png"
         },
         {
           "type": "bitmap",
