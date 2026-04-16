@@ -1,5 +1,3 @@
-var apiKey = 'b9adedce948f46ade4253555561f2d43';
-
 var xhrRequest = function (url, type, callback) {
     var xhr = new XMLHttpRequest();
     xhr.onload = function () {
@@ -10,8 +8,15 @@ var xhrRequest = function (url, type, callback) {
 }
 
 function locationSuccess(pos) {
-    var url = 'https://api.openweathermap.org/data/2.5/weather?lat=' +
-    pos.coords.latitude + '&lon=' + pos.coords.longitude + '&appid=' + apiKey + '&units=imperial';
+    var url = 'https://api.open-meteo.com/v1/forecast?' +
+    'latitude=' + pos.coords.latitude + 
+    '&longitude=' + pos.coords.longitude + 
+    '&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min' +
+    '&current=temperature_2m,is_day,weather_code' +
+    '&timezone=auto' +
+    '&forecast_days=1' +
+    '&temperature_unit=fahrenheit' +
+    '&timeformat=unixtime';
 
     xhrRequest(url, 'GET',
         function(responseText) {
@@ -19,62 +24,120 @@ function locationSuccess(pos) {
 
             // for testing
             // responseText = `{
-            //     "weather": [
-            //         {
-            //             "id": 800,
-            //             "main": "Clear",
-            //             "description": "clear sky",
-            //             "icon": "01d"
-            //         }
-            //     ],
-            //     "main": {
-            //         "temp": 24,
-            //         "temp_max": 24,
-            //         "temp_min": 7
+            //     "latitude": 52.52,
+            //     "longitude": 13.419998,
+            //     "generationtime_ms": 0.095367431640625,
+            //     "utc_offset_seconds": 7200,
+            //     "timezone": "Europe/Berlin",
+            //     "timezone_abbreviation": "GMT+2",
+            //     "elevation": 38.0,
+            //     "current_units": {
+            //         "time": "unixtime",
+            //         "interval": "seconds",
+            //         "temperature_2m": "°F",
+            //         "is_day": "",
+            //         "weather_code": "wmo code"
             //     },
-            //     "sys": {
-            //         "sunrise": 1765718998,
-            //         "sunset": 1765753031
+            //     "current": {
+            //         "time": 1776307500,
+            //         "interval": 900,
+            //         "temperature_2m": 49.0,
+            //         "is_day": 0,
+            //         "weather_code": 3
+            //     },
+            //     "daily_units": {
+            //         "time": "unixtime",
+            //         "sunrise": "unixtime",
+            //         "sunset": "unixtime",
+            //         "temperature_2m_max": "°F",
+            //         "temperature_2m_min": "°F"
+            //     },
+            //     "daily": {
+            //         "time": [
+            //             1776290400
+            //         ],
+            //         "sunrise": [
+            //             1776312366
+            //         ],
+            //         "sunset": [
+            //             1776362769
+            //         ],
+            //         "temperature_2m_max": [
+            //             67.0
+            //         ],
+            //         "temperature_2m_min": [
+            //             48.0
+            //         ]
             //     }
             // }`;
 
             var json = JSON.parse(responseText);
 
-            var temp_max = Math.round(json.main.temp_max);
+            var temp_max = Math.round(json.daily.temperature_2m_max[0]);
             console.log('Temp High: ' + temp_max);
 
-            var temp = Math.round(json.main.temp);
+            var temp = Math.round(json.current.temperature_2m);
             console.log('Temp (Current): ' + temp);
 
-            var temp_min = Math.round(json.main.temp_min);
+            var temp_min = Math.round(json.daily.temperature_2m_min[0]);
             console.log('Temp Low:' + temp_min);
 
             // Conditions
             var conditions = null;
-            var conditionId = json.weather[0].id;
+            var conditionId = json.current.weather_code;
             console.log('Condition ID: ' + conditionId);
-            var conditionIndex = Math.floor(conditionId / 100);
-            console.log('Condition Index: ' + conditionIndex);
-            switch(conditionIndex) {
-                case 2:
-                    conditions = 'THUNDERSTORM';
+            switch(conditionId) {
+                case 0: // Clear Sky
+                    conditions = 'CLEAR';
                     break;
-                case 3:
-                    conditions = 'DRIZZLE';
+                case 1: // Mainly clear
+                case 2: // Partly Cloudy
+                    conditions = 'PARTLY_CLOUDY';
                     break;
-                case 5:
-                    conditions = 'RAIN';
+                case 3: // Overcast
+                    conditions = 'CLOUDS';
                     break;
-                case 6:
-                    conditions = 'SNOW';
-                    break;
-                case 7:
+                case 45: // Fog
+                case 48: // Depositing rime fog
                     conditions = 'ATMOSPHERE';
                     break;
-                case 8:
-                    conditions = 
-                        conditionId === 800 ? 'CLEAR' : 
-                        conditionId === 801 ? 'PARTLY_CLOUDY' : 'CLOUDS';
+                case 51: // Drizzle: Light intensity
+                case 53: // Drizzle: Moderate intensity
+                case 55: // Drizzle: Dense intensity
+                    conditions = 'DRIZZLE'; // TODO - split this out with different icons.
+                    break;
+                case 56: // Freezing Drizzle: light intensity
+                case 57: // Freezing Drizzle: dense intensity
+                    conditions = 'DRIZZLE'; // TODO - make these 'FREEZING_DRIZZLE' icons.
+                    break;
+                case 61: // Rain: slight intensity
+                case 63: // Rain: moderate intensity
+                case 65: // Rain: heavy intensity
+                    conditions = 'RAIN'; // TODO - split this out with different icons.
+                    break;
+                case 66: // Freezing rain: light
+                case 67: // Freezing rain: heavy
+                    conditions = 'RAIN' // TODO - make these 'FREEZING_RAIN' icons.
+                    break;
+                case 71: // Snow fall: slight intensity
+                case 73: // Snow fall: moderate intensity
+                case 75: // Snow fall: heavy intensity
+                case 77: // Snow grains
+                    conditions = 'SNOW';
+                    break;
+                case 80: // Rain showers: slight
+                case 81: // Rain showers: moderate
+                case 82: // Rain showers: violent
+                    conditions = 'RAIN'; // TODO - split this out with different icons.
+                    break;
+                case 85: // Snow showers: slight
+                case 86: // Snow showers: heavy
+                    conditions = 'SNOW'; // TODO - make these 'SNOW_SHOWERS' icons.
+                    break;
+                case 95: // Thunderstorm: slight or moderate
+                case 96: // Thunderstorm: with slight hail (Central Europe only)
+                case 99: // Thunderstorm: with heavy hail (Central Europe only)
+                    conditions = 'THUNDERSTORM';
                     break;
                 default:
                     conditions = null;
@@ -83,10 +146,10 @@ function locationSuccess(pos) {
             console.log('Conditions: ' + conditions);
 
             // Sunrise / Sunset
-            var sunrise = json.sys.sunrise; // seconds!
+            var sunrise = json.daily.sunrise[0]; // seconds!
             console.log('Sunrise: ' + new Date(sunrise * 1000).toString());
 
-            var sunset = json.sys.sunset; // seconds!
+            var sunset = json.daily.sunset[0]; // seconds!
             console.log('Sunset: ' + new Date(sunset * 1000).toString());
 
             var dictionary = {
