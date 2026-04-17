@@ -478,6 +478,13 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
     // Send the message!
     app_message_outbox_send(); // This requests the latest weather and daylight
   }
+
+  // If it's within 2 minutes after sunrise or sunset, call update_conditions() to transition sun/moon icons.
+  time_t epoch_seconds = mktime(tick_time);
+  if ((epoch_seconds >= s_sunrise_seconds && epoch_seconds <= (s_sunrise_seconds + 120))
+    || (epoch_seconds >= s_sunset_seconds && epoch_seconds <= (s_sunset_seconds + 120))) {
+      update_conditions();
+  }
 }
 
 static void main_window_load(Window *window) {
