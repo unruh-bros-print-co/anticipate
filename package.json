@@ -437,7 +437,7 @@
         {
           "type": "png",
           "name": "IMAGE_CONDITION_ATMOSPHERE_LIGHT",
-          "file": "images/icon-condition-atmosphere-light-v2.png"
+          "file": "images/icon-condition-atmosphere-light.png"
         },
         {
           "type": "bitmap",
