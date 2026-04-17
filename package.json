@@ -218,12 +218,12 @@
         {
           "type": "bitmap",
           "name": "IMAGE_NUMBER_S_7_DARK",
-          "file": "images/num-s-7-dark.png"
+          "file": "images/num-s-7-dark-v2.png"
         },
         {
           "type": "bitmap",
           "name": "IMAGE_NUMBER_S_7_LIGHT",
-          "file": "images/num-s-7-light.png"
+          "file": "images/num-s-7-light-v2.png"
         },
         {
           "type": "bitmap",
@@ -348,12 +348,12 @@
         {
           "type": "bitmap",
           "name": "IMAGE_NUMBER_XS_7_DARK",
-          "file": "images/num-xs-7-dark.png"
+          "file": "images/num-xs-7-dark-v2.png"
         },
         {
           "type": "bitmap",
           "name": "IMAGE_NUMBER_XS_7_LIGHT",
-          "file": "images/num-xs-7-light.png"
+          "file": "images/num-xs-7-light-v2.png"
         },
         {
           "type": "bitmap",
