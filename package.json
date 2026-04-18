@@ -381,6 +381,61 @@
           "file": "images/num-xs-dash-dark.png"
         },
         {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XXS_0_LIGHT",
+          "file": "images/num-xxs-0.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XXS_1_LIGHT",
+          "file": "images/num-xxs-1-v2.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XXS_2_LIGHT",
+          "file": "images/num-xxs-2.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XXS_3_LIGHT",
+          "file": "images/num-xxs-3.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XXS_4_LIGHT",
+          "file": "images/num-xxs-4.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XXS_5_LIGHT",
+          "file": "images/num-xxs-5.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XXS_6_LIGHT",
+          "file": "images/num-xxs-6.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XXS_7_LIGHT",
+          "file": "images/num-xxs-7-v2.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XXS_8_LIGHT",
+          "file": "images/num-xxs-8.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XXS_9_LIGHT",
+          "file": "images/num-xxs-9.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_NUMBER_XXS_COLON_LIGHT",
+          "file": "images/num-xxs-colon.png"
+        },
+        {
           "type": "png",
           "name": "IMAGE_CONDITION_CLEAR_SUN_LIGHT",
           "file": "images/icon-condition-clear-sun-light-v3.png"
@@ -446,58 +501,8 @@
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC",
-          "file": "images/background-static.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V2",
-          "file": "images/background-static-v2.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V3",
-          "file": "images/background-static-v3.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V3_NO_DATE",
-          "file": "images/background-static-v3_no_date.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V3_2_NO_DATE",
-          "file": "images/background-static-v3-2_no_date.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V3_2_NO_DATE_NO_STEPS",
-          "file": "images/background-static-v3-2-no-date-no-steps.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V3_2_NO_DATE_NO_STEPS_NO_WEATHER",
-          "file": "images/background-static-v3-2-no-date-no-steps-no-weather.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V3_1",
-          "file": "images/background-static-v3.1.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V4",
-          "file": "images/background-static-v4.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V7",
-          "file": "images/background-static-v7.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V8_CONDITIONS",
-          "file": "images/background-static-v8-conditions.png"
+          "name": "IMAGE_BACKGROUND",
+          "file": "images/background-static-v10-sunrise_set.png"
         },
         {
           "type": "bitmap",
