@@ -1,12 +1,12 @@
 {
-  "name": "big-time",
+  "name": "anticipate",
   "author": "Unruh Bros. Print Co.",
   "version": "1.0.0",
-  "keywords": ["pebble-app"],
+  "keywords": ["pebble-app", "basalt", "diorite", "flint", "emery", "gabbro", "weather", "minimal", "black-and-white", "large display", "sunrise-sunset", "clean", "digital"],
   "private": true,
   "dependencies": {},
   "pebble": {
-    "displayName": "big-time",
+    "displayName": "Anticipate",
     "uuid": "46eacbb9-5efc-439b-8889-942b365a591b",
     "sdkVersion": "3",
     "enableMultiJS": true,
@@ -34,6 +34,12 @@
     ],
     "resources": {
       "media": [
+        {
+          "type": "bitmap",
+          "name": "IMAGE_MENU_ICON",
+          "file": "images/anticipate_icon_25_25.png",
+          "menuIcon": true
+        },
         {
           "type": "bitmap",
           "name": "IMAGE_NUMBER_LG_0",
