@@ -129,6 +129,9 @@ static BitmapLayer *s_bitmap_layer_time_m2;
 static Window *s_main_window;
 static GBitmap *s_bitmap_background;
 
+// Layer: Container Layer for centering on larger screens
+static Layer *s_container_layer;
+
 // Layers
 static Layer *s_layer_date;
 static Layer *s_layer_steps;
@@ -707,6 +710,18 @@ static void main_window_load(Window *window) {
   Layer *root_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(root_layer);
 
+  // Using centered container layer for larger screens (Future versions can have graphics for larger screens)
+  int container_w = 144;
+  int container_h = 168;
+  s_container_layer = layer_create(GRect(
+    (bounds.size.w - container_w) / 2,
+    (bounds.size.h - container_h) / 2,
+    container_w,
+    container_h
+  ));
+  layer_add_child(root_layer, s_container_layer);
+  GRect container_bounds = layer_get_bounds(s_container_layer);
+
   // Load Bitmaps
 
   // LG
@@ -825,59 +840,59 @@ static void main_window_load(Window *window) {
   s_bitmap_conditions[9] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CONDITION_ATMOSPHERE_LIGHT);
 
   // Bitmap Layers
-  s_bitmap_layer_background = bitmap_layer_create(bounds);
+  s_bitmap_layer_background = bitmap_layer_create(container_bounds);
   s_bitmap_background = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BACKGROUND);
   bitmap_layer_set_bitmap(s_bitmap_layer_background, s_bitmap_background);
-  layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_background));
+  layer_add_child(s_container_layer, bitmap_layer_get_layer(s_bitmap_layer_background));
 
   s_bitmap_layer_sun_index = bitmap_layer_create(GRect(SUN_INDEX_START_X, SUN_INDEX_Y, SUN_INDEX_BITMAP_W, SUN_INDEX_BITMAP_H)); // initial sun_index at 12:00am.
   s_bitmap_sun_index = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_SUN_INDEX);
   bitmap_layer_set_bitmap(s_bitmap_layer_sun_index, s_bitmap_sun_index);
-  layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_sun_index));
+  layer_add_child(s_container_layer, bitmap_layer_get_layer(s_bitmap_layer_sun_index));
 
   s_bitmap_layer_time_h1 = bitmap_layer_create(GRect(L_TENS_X, L_HOURS_Y, L_WIDTH, L_HEIGHT));
   bitmap_layer_set_alignment(s_bitmap_layer_time_h1, GAlignRight);
-  layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_time_h1));
+  layer_add_child(s_container_layer, bitmap_layer_get_layer(s_bitmap_layer_time_h1));
   
   s_bitmap_layer_time_h1_offset = bitmap_layer_create(GRect((L_TENS_X + L_TENS_X_OFFSET), L_HOURS_Y, L_WIDTH, L_HEIGHT)); // offset when ones place is a '1' since it's not as wide.
   bitmap_layer_set_alignment(s_bitmap_layer_time_h1_offset, GAlignRight);
-  layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_time_h1_offset));
+  layer_add_child(s_container_layer, bitmap_layer_get_layer(s_bitmap_layer_time_h1_offset));
   
   s_bitmap_layer_time_h2 = bitmap_layer_create(GRect(L_ONES_X, L_HOURS_Y, L_WIDTH, L_HEIGHT));
   bitmap_layer_set_alignment(s_bitmap_layer_time_h2, GAlignRight);
-  layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_time_h2));
+  layer_add_child(s_container_layer, bitmap_layer_get_layer(s_bitmap_layer_time_h2));
   
   s_bitmap_layer_time_m1 = bitmap_layer_create(GRect(L_TENS_X, L_MINUTES_Y, L_WIDTH, L_HEIGHT));
   bitmap_layer_set_alignment(s_bitmap_layer_time_m1, GAlignRight);
-  layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_time_m1));
+  layer_add_child(s_container_layer, bitmap_layer_get_layer(s_bitmap_layer_time_m1));
   
   s_bitmap_layer_time_m1_offset = bitmap_layer_create(GRect((L_TENS_X + L_TENS_X_OFFSET), L_MINUTES_Y, L_WIDTH, L_HEIGHT)); // offset when ones place is a '1' since it's not as wide.
   bitmap_layer_set_alignment(s_bitmap_layer_time_m1_offset, GAlignRight);
-  layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_time_m1_offset));
+  layer_add_child(s_container_layer, bitmap_layer_get_layer(s_bitmap_layer_time_m1_offset));
   
   s_bitmap_layer_time_m2 = bitmap_layer_create(GRect(L_ONES_X, L_MINUTES_Y, L_WIDTH, L_HEIGHT));
   bitmap_layer_set_alignment(s_bitmap_layer_time_m2, GAlignRight);
-  layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_time_m2));
+  layer_add_child(s_container_layer, bitmap_layer_get_layer(s_bitmap_layer_time_m2));
 
   s_layer_date = layer_create(GRect(UI_DATE_X, UI_DATE_Y, UI_DATE_W, UI_DATE_H));
   layer_set_update_proc(s_layer_date, layer_date_update_proc);
-  layer_add_child(root_layer, s_layer_date);
+  layer_add_child(s_container_layer, s_layer_date);
 
   s_layer_steps = layer_create(GRect(UI_STEPS_X, UI_STEPS_Y, UI_STEPS_W, UI_STEPS_H));
   layer_set_update_proc(s_layer_steps, layer_steps_update_proc);
-  layer_add_child(root_layer, s_layer_steps);
+  layer_add_child(s_container_layer, s_layer_steps);
 
   s_layer_temp_high = layer_create(GRect(UI_TEMP_HI_X, UI_TEMP_HI_Y, UI_TEMP_HI_W, UI_TEMP_HI_H));
   layer_set_update_proc(s_layer_temp_high, layer_temp_high_update_proc);
-  layer_add_child(root_layer, s_layer_temp_high);
+  layer_add_child(s_container_layer, s_layer_temp_high);
 
   s_layer_temp_current = layer_create(GRect(UI_TEMP_CUR_X, UI_TEMP_CUR_Y, UI_TEMP_CUR_W, UI_TEMP_CUR_H));
   layer_set_update_proc(s_layer_temp_current, layer_temp_current_update_proc);
-  layer_add_child(root_layer, s_layer_temp_current);
+  layer_add_child(s_container_layer, s_layer_temp_current);
 
   s_layer_temp_low = layer_create(GRect(UI_TEMP_LO_X, UI_TEMP_LO_Y, UI_TEMP_LO_W, UI_TEMP_LO_H));
   layer_set_update_proc(s_layer_temp_low, layer_temp_low_update_proc);
-  layer_add_child(root_layer, s_layer_temp_low);
+  layer_add_child(s_container_layer, s_layer_temp_low);
 
   s_bitmap_layer_conditions = bitmap_layer_create(GRect(UI_CONDITIONS_X, UI_CONDITIONS_Y, UI_CONDITIONS_W, UI_CONDITIONS_H));
   bitmap_layer_set_background_color(s_bitmap_layer_conditions, GColorClear);
@@ -890,15 +905,15 @@ static void main_window_load(Window *window) {
   // Fallback for the original 1-bit Pebble (Aplite)
   bitmap_layer_set_compositing_mode(s_bitmap_layer_conditions, GCompOpOr);
   #endif
-  layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_conditions));
+  layer_add_child(s_container_layer, bitmap_layer_get_layer(s_bitmap_layer_conditions));
   
   s_layer_sunrise_sunset_bars = layer_create(GRect(UI_SUNRISE_SUNSET_X, UI_SUNRISE_SUNSET_Y, UI_SUNRISE_SUNSET_W, UI_SUNRISE_SUNSET_H));
   layer_set_update_proc(s_layer_sunrise_sunset_bars, layer_sunrise_sunset_update_proc);
-  layer_add_child(root_layer, s_layer_sunrise_sunset_bars);
+  layer_add_child(s_container_layer, s_layer_sunrise_sunset_bars);
   
   s_layer_sunlight_labels = layer_create(GRect(UI_SUNLIGHT_LABELS_X, UI_SUNLIGHT_LABELS_Y, UI_SUNLIGHT_LABELS_W, UI_SUNLIGHT_LABELS_H));
   layer_set_update_proc(s_layer_sunlight_labels, layer_sunlight_labels_update_proc);
-  layer_add_child(root_layer, s_layer_sunlight_labels);
+  layer_add_child(s_container_layer, s_layer_sunlight_labels);
 }
 
 /**
@@ -963,6 +978,8 @@ static void main_window_unload(Window *window) {
 
   gbitmap_destroy(s_bitmap_background);
   bitmap_layer_destroy(s_bitmap_layer_background);
+
+  layer_destroy(s_container_layer);
 }
 
 /**
