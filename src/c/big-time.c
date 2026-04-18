@@ -397,7 +397,7 @@ static void layer_sunrise_sunset_update_proc(Layer *layer, GContext *ctx) {
     && (s_sunrise_seconds > midnight_today_seconds))) {
     APP_LOG(APP_LOG_LEVEL_ERROR, "Non-standard sunrise[%ld] and sunset[%ld] times. Will not display.", s_sunrise_seconds, s_sunset_seconds);
     // Draw one rectangle without data.
-    graphics_draw_rect(ctx, GRect(UI_SUNRISE_SUNSET_X, UI_SUNRISE_SUNSET_Y, UI_SUNRISE_SUNSET_W, UI_SUNRISE_SUNSET_H));
+    graphics_draw_rect(ctx, GRect(0, 0, UI_SUNRISE_SUNSET_W, UI_SUNRISE_SUNSET_H));
     return;
   }
 
@@ -580,8 +580,11 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_sun_index(tick_time);
   update_steps();
 
-  // Request weather info
-  if (tick_time->tm_min %30 == 0) {
+  time_t midnight_today_seconds = get_midnight_today_seconds();
+  time_t current_seconds = mktime(tick_time);
+
+  // Request weather info every 30 minutes, or within 2 minutes after midnight
+  if (tick_time->tm_min %30 == 0 || (current_seconds > midnight_today_seconds && current_seconds <= (midnight_today_seconds + 120))) {
   // if (tick_time->tm_min %1 == 0) {
     // Begin dictionary
     DictionaryIterator *iter;
