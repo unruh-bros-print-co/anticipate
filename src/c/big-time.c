@@ -1,4 +1,5 @@
 #include <pebble.h>
+#include <math.h>
 #include "bitmap_info.h"
 
 // (L)arge number placement & dimensions
@@ -76,26 +77,15 @@ static const uint16_t UI_CONDITIONS_Y = 128;
 static const uint16_t UI_CONDITIONS_W = 36;
 static const uint16_t UI_CONDITIONS_H = 36;
 
-// Global Variables
-static struct tm s_current_time;
-static int s_current_steps = 0;
-static bool s_temp_high_loading = true;
-static int s_temp_high = 0;
-static bool s_temp_current_loading = true;
-static int s_temp_current = 0;
-static bool s_temp_low_loading = true;
-static int s_temp_low = 0;
-static long s_sunrise_seconds = 0;
-static long s_sunset_seconds = 0;
-static char s_condition[50];
-
-// Layers: Main Window & Background
-static Window *s_main_window;
-// static TextLayer *s_text_layer;
-static GBitmap *s_bitmap_background;
+// Sunrise / Sunset Display: placement * dimensions
+static const uint16_t UI_SUNRISE_SUNSET_X = 44;
+static const uint16_t UI_SUNRISE_SUNSET_Y = 160;
+static const uint16_t UI_SUNRISE_SUNSET_W = 96;
+static const uint16_t UI_SUNRISE_SUNSET_H = 4;
+static const uint16_t UI_SUNRISE_SUNSET_SPACE_HORIZONTAL = 4;
 
 // UI: Sun Index / Marker
-static const int SUNRISE_SUNSET_UI_START_X = 45;
+static const int SUN_INDEX_START_X = 45;
 static const int SUN_INDEX_Y = 165;
 static const int SUN_INDEX_BITMAP_LEFT_OFFSET = 3;
 static const int SUN_INDEX_BITMAP_W = 4;
@@ -119,16 +109,34 @@ static BitmapLayer *s_bitmap_layer_time_m1;
 static BitmapLayer *s_bitmap_layer_time_m1_offset;
 static BitmapLayer *s_bitmap_layer_time_m2;
 
+// Layers: Main Window & Background
+static Window *s_main_window;
+static GBitmap *s_bitmap_background;
+
 // Layers
 static Layer *s_layer_date;
 static Layer *s_layer_steps;
 static Layer *s_layer_temp_high;
 static Layer *s_layer_temp_current;
 static Layer *s_layer_temp_low;
+static Layer *s_layer_sunrise_sunset_bars;
 
 // Conditions GBitmap and BitmapLayer
 static GBitmap *s_bitmap_conditions[10];
 static BitmapLayer *s_bitmap_layer_conditions;
+
+// Global Variables
+static struct tm s_current_time;
+static int s_current_steps = 0;
+static bool s_temp_high_loading = true;
+static int s_temp_high = 0;
+static bool s_temp_current_loading = true;
+static int s_temp_current = 0;
+static bool s_temp_low_loading = true;
+static int s_temp_low = 0;
+static long s_sunrise_seconds = 0;
+static long s_sunset_seconds = 0;
+static char s_condition[50];
 
 /**
  * @brief Calculates the width in pixels, of a given String of Characters, 
@@ -211,6 +219,45 @@ void draw_string(GContext *ctx, char *str, int x_start, int y, BitmapInfo *bitma
     x_current += current_width + spacing_px;
   }
 }
+
+/**
+ * @brief Gets the unix-seconds value of midnight (start of day) this morning.
+ */
+static time_t get_midnight_today_seconds() {
+  // 1. Get the current time
+  time_t now = time(NULL);
+  
+  // 2. Convert to struct tm (Local Time)
+  struct tm *t = localtime(&now);
+  
+  // 3. Set time to 00:00:00
+  t->tm_sec = 0;
+  t->tm_min = 0;
+  t->tm_hour = 0;
+  
+  // 4. Optional: Ensure daylight savings flag is handled automatically
+  t->tm_isdst = -1; 
+  
+  // 5. Convert back to seconds since epoch
+  return mktime(t);
+}
+
+/**
+ * @brief Determine if it's currently night.
+ */
+static bool is_night() {
+  time_t midnight_today_seconds = get_midnight_today_seconds();
+  if (s_sunrise_seconds > midnight_today_seconds && s_sunset_seconds > midnight_today_seconds) {
+    time_t now = time(NULL);
+    return (now < s_sunrise_seconds || now > s_sunset_seconds);
+  }
+  else {
+    // old sunrise/sunset values - return true
+    return false;
+  }
+}
+
+// -=-=-= Update Procedure Functions -=-=-=
 
 /**
  * @brief Date:  layer_update_proc
@@ -328,6 +375,57 @@ static void layer_temp_low_update_proc(Layer *layer, GContext *ctx) {
 }
 
 /**
+ * @brief Sunrise / Sunset Display: layer_update_proc
+ */
+static void layer_sunrise_sunset_update_proc(Layer *layer, GContext *ctx) {
+  GRect bounds = layer_get_bounds(layer);
+
+  // Set the Graphics Context Colors for when its time to draw.
+  graphics_context_set_compositing_mode(ctx, GCompOpAssign);
+  graphics_context_set_stroke_color(ctx, GColorWhite);
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  
+  // Convert seconds to minutes, and divide by 15 - since each pixel represents a 15-min interval.
+  time_t midnight_today_seconds = get_midnight_today_seconds();
+
+  // TODO - add some special-case handling - what if sunset comes before sunrise some day, or it's all sun, or no sun day.. 
+  // For now, return if sunrise and sunset are not standard...
+  if (!(
+    s_sunrise_seconds
+    && s_sunset_seconds
+    && (s_sunset_seconds > s_sunrise_seconds)
+    && (s_sunrise_seconds > midnight_today_seconds))) {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Non-standard sunrise[%ld] and sunset[%ld] times. Will not display.", s_sunrise_seconds, s_sunset_seconds);
+    // Draw one rectangle without data.
+    graphics_draw_rect(ctx, GRect(UI_SUNRISE_SUNSET_X, UI_SUNRISE_SUNSET_Y, UI_SUNRISE_SUNSET_W, UI_SUNRISE_SUNSET_H));
+    return;
+  }
+
+  // Note: x and y here is relative to the layer, not the entire screen.
+
+  int sunrise_x = round((double)((s_sunrise_seconds - midnight_today_seconds) / 60) / 15);
+  int sunset_x = round((double)((s_sunset_seconds - midnight_today_seconds) / 60) / 15);
+
+  // Calculate pre_sun, sun, and post_sun X and Width values.
+  int pre_sun_x = 0;
+  int pre_sun_w = (sunrise_x - UI_SUNRISE_SUNSET_SPACE_HORIZONTAL); // leave space between pre_sun and sun
+  int sun_w = (sunset_x - sunrise_x);
+  int post_sun_x = (sunset_x + UI_SUNRISE_SUNSET_SPACE_HORIZONTAL); // leave space between sun and post_sun.
+  int post_sun_w = (UI_SUNRISE_SUNSET_W - post_sun_x);
+
+  // Draw the three rectangles for pre_sun, sun, and post_sun
+  if (pre_sun_w > 0) {
+    graphics_draw_rect(ctx, GRect(pre_sun_x, 0, pre_sun_w, UI_SUNRISE_SUNSET_H));
+  }
+  if (sun_w > 0) {
+    graphics_fill_rect(ctx, GRect(sunrise_x, 0, sun_w, UI_SUNRISE_SUNSET_H), 1, GCornerNone);
+  }
+  if (post_sun_w > 0) {
+    graphics_draw_rect(ctx, GRect(post_sun_x, 0, post_sun_w, UI_SUNRISE_SUNSET_H));
+  }
+}
+
+/**
  * @brief Time: Update function
  */
 static void update_time(struct tm *tick_time) {
@@ -391,7 +489,7 @@ static void update_sun_index(struct tm *tick_time) {
   int minute_of_day = hr * 60;
   minute_of_day += min;
 
-  int sun_index_x = SUNRISE_SUNSET_UI_START_X - SUN_INDEX_BITMAP_LEFT_OFFSET + (minute_of_day / 15);
+  int sun_index_x = SUN_INDEX_START_X - SUN_INDEX_BITMAP_LEFT_OFFSET + (minute_of_day / 15);
 
   layer_set_frame(bitmap_layer_get_layer(s_bitmap_layer_sun_index), GRect(sun_index_x, SUN_INDEX_Y, SUN_INDEX_BITMAP_W, SUN_INDEX_BITMAP_H));
 }
@@ -418,43 +516,6 @@ static void update_steps() {
   #else
   // Health data not available
   #endif
-}
-
-/**
- * @brief Gets the unix-seconds value of midnight (start of day) this morning.
- */
-static time_t get_midnight_today() {
-  // 1. Get the current time
-  time_t now = time(NULL);
-  
-  // 2. Convert to struct tm (Local Time)
-  struct tm *t = localtime(&now);
-  
-  // 3. Set time to 00:00:00
-  t->tm_sec = 0;
-  t->tm_min = 0;
-  t->tm_hour = 0;
-  
-  // 4. Optional: Ensure daylight savings flag is handled automatically
-  t->tm_isdst = -1; 
-  
-  // 5. Convert back to seconds since epoch
-  return mktime(t);
-}
-
-/**
- * @brief Determine if it's currently night.
- */
-static bool is_night() {
-  time_t midnight_today = get_midnight_today();
-  if (s_sunrise_seconds > midnight_today && s_sunset_seconds > midnight_today) {
-    time_t now = time(NULL);
-    return (now < s_sunrise_seconds || now > s_sunset_seconds);
-  }
-  else {
-    // old sunrise/sunset values - return true
-    return false;
-  }
 }
 
 /**
@@ -635,7 +696,7 @@ static void main_window_load(Window *window) {
   bitmap_layer_set_bitmap(s_bitmap_layer_background, s_bitmap_background);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_background));
 
-  s_bitmap_layer_sun_index = bitmap_layer_create(GRect(SUNRISE_SUNSET_UI_START_X, SUN_INDEX_Y, SUN_INDEX_BITMAP_W, SUN_INDEX_BITMAP_H)); // initial sun_index at 12:00am.
+  s_bitmap_layer_sun_index = bitmap_layer_create(GRect(SUN_INDEX_START_X, SUN_INDEX_Y, SUN_INDEX_BITMAP_W, SUN_INDEX_BITMAP_H)); // initial sun_index at 12:00am.
   s_bitmap_sun_index = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_SUN_INDEX);
   bitmap_layer_set_bitmap(s_bitmap_layer_sun_index, s_bitmap_sun_index);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_sun_index));
@@ -686,16 +747,20 @@ static void main_window_load(Window *window) {
 
   s_bitmap_layer_conditions = bitmap_layer_create(GRect(UI_CONDITIONS_X, UI_CONDITIONS_Y, UI_CONDITIONS_W, UI_CONDITIONS_H));
   bitmap_layer_set_background_color(s_bitmap_layer_conditions, GColorClear);
-
+  
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Test Log Message ***");
   // Target the "Advanced" graphics engine (Diorite/Time/Round)
   #if defined(PBL_SDK_3) || defined(PBL_COLOR) || defined(PBL_PLATFORM_DIORITE)
-      bitmap_layer_set_compositing_mode(s_bitmap_layer_conditions, GCompOpSet);
+  bitmap_layer_set_compositing_mode(s_bitmap_layer_conditions, GCompOpSet);
   #else
-      // Fallback for the original 1-bit Pebble (Aplite)
-      bitmap_layer_set_compositing_mode(s_bitmap_layer_conditions, GCompOpOr);
+  // Fallback for the original 1-bit Pebble (Aplite)
+  bitmap_layer_set_compositing_mode(s_bitmap_layer_conditions, GCompOpOr);
   #endif
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_conditions));
+  
+  s_layer_sunrise_sunset_bars = layer_create(GRect(UI_SUNRISE_SUNSET_X, UI_SUNRISE_SUNSET_Y, UI_SUNRISE_SUNSET_W, UI_SUNRISE_SUNSET_H));
+  layer_set_update_proc(s_layer_sunrise_sunset_bars, layer_sunrise_sunset_update_proc);
+  layer_add_child(root_layer, s_layer_sunrise_sunset_bars);
 }
 
 /**
@@ -747,6 +812,8 @@ static void main_window_unload(Window *window) {
   }
   bitmap_layer_destroy(s_bitmap_layer_conditions);
 
+  layer_destroy(s_layer_sunrise_sunset_bars);
+
   gbitmap_destroy(s_bitmap_sun_index);
   bitmap_layer_destroy(s_bitmap_layer_sun_index);
 
@@ -783,10 +850,14 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     layer_mark_dirty(s_layer_temp_low);
   }
   if (sunrise_tuple) {
-    s_sunrise_seconds = (int)sunrise_tuple->value->int32;
+    s_sunrise_seconds = (long)sunrise_tuple->value->int32;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received Sunrise[%ld]", s_sunrise_seconds);
+    layer_mark_dirty(s_layer_sunrise_sunset_bars);
   }
   if (sunset_tuple) {
-    s_sunset_seconds = (int)sunset_tuple->value->int32;
+    s_sunset_seconds = (long)sunset_tuple->value->int32;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received Sunset[%ld]", s_sunset_seconds);
+    layer_mark_dirty(s_layer_sunrise_sunset_bars);
   }
   if (conditions_tuple) {
     snprintf(s_condition, sizeof(s_condition), "%s", conditions_tuple->value->cstring);
