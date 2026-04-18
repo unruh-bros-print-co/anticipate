@@ -1,7 +1,7 @@
 {
   "name": "anticipate",
   "author": "Unruh Bros. Print Co.",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "keywords": ["pebble-app", "basalt", "diorite", "flint", "emery", "gabbro", "weather", "minimal", "black-and-white", "large display", "sunrise-sunset", "clean", "digital"],
   "private": true,
   "dependencies": {},
