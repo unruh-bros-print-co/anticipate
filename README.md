@@ -3,7 +3,10 @@
 A high-contrast, minimalist watchface to anticpate the day ahead.
 
 ## Features
-- **Weather Integration:** Real-time data with auto-toggling 12/24h formats.
+- **Current Date**
+- **Step Count** updates every minute.
+- **Weather Integration** updates every 30 minutes for Temperature (high, current, low), current conditions, and daily sunrise and sunset display.
+- **12h and 24h Format Support**
 
 **Supported Platforms:**
   - basalt
