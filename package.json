@@ -446,58 +446,8 @@
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC",
-          "file": "images/background-static.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V2",
-          "file": "images/background-static-v2.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V3",
-          "file": "images/background-static-v3.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V3_NO_DATE",
-          "file": "images/background-static-v3_no_date.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V3_2_NO_DATE",
-          "file": "images/background-static-v3-2_no_date.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V3_2_NO_DATE_NO_STEPS",
-          "file": "images/background-static-v3-2-no-date-no-steps.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V3_2_NO_DATE_NO_STEPS_NO_WEATHER",
-          "file": "images/background-static-v3-2-no-date-no-steps-no-weather.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V3_1",
-          "file": "images/background-static-v3.1.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V4",
-          "file": "images/background-static-v4.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V7",
-          "file": "images/background-static-v7.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BACKGROUND_STATIC_V8_CONDITIONS",
-          "file": "images/background-static-v8-conditions.png"
+          "name": "IMAGE_BACKGROUND",
+          "file": "images/background-static-v10-sunrise_set.png"
         },
         {
           "type": "bitmap",
