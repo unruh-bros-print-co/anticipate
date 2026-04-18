@@ -25,14 +25,21 @@ static const uint16_t XS_WIDTH_1 = 4;
 static const uint16_t XS_WIDTH_DASH = 4;
 static const uint16_t XS_HEIGHT = 10;
 
+// E(x)tra E(x)tra (S)mall number placement & dimensions
+static const uint16_t XXS_WIDTH = 3;
+static const uint16_t XXS_WIDTH_1 = 2;
+static const uint16_t XXS_WIDTH_COLON = 1;
+static const uint16_t XXS_HEIGHT = 4;
+
 // Special character indexes
 static const uint16_t INDEX_DASH = 10; // '-'
 static const uint16_t INDEX_DEGREE = 11; // '°'
 static const uint16_t INDEX_LOADING = 12; // '...'
+static const uint16_t INDEX_COLON = 13; // ':'
 
 // =-=-=- UI element placement & dimensions =-=-=-
 
-// Date: placement * dimensions
+// Date: placement & dimensions
 static const uint16_t UI_DATE_X = 4;
 static const uint16_t UI_DATE_Y = 4;
 static const uint16_t UI_DATE_W = 36;
@@ -40,7 +47,7 @@ static const uint16_t UI_DATE_H = 21;
 static const uint16_t UI_DATE_SPACING = 1;
 static const uint16_t UI_DATE_CONTENT_Y = 6;
 
-// Steps: placement * dimensions
+// Steps: placement & dimensions
 static const uint16_t UI_STEPS_X = 4;
 static const uint16_t UI_STEPS_Y = 29;
 static const uint16_t UI_STEPS_W = 36;
@@ -48,36 +55,44 @@ static const uint16_t UI_STEPS_H = 21;
 static const uint16_t UI_STEPS_SPACING = 1;
 static const uint16_t UI_STEPS_CONTENT_Y = 6;
 
-// Temp (All): placement * dimensions
+// Temp (All): placement & dimensions
 static const uint16_t UI_TEMP_SPACING = 1;
 static const uint16_t UI_TEMP_CONTENT_Y = 4;
 static const uint16_t UI_TEMP_OFFSET = 1;
 
-// Temp High: placement * dimensions
+// Temp High: placement & dimensions
 static const uint16_t UI_TEMP_HI_X = 4;
 static const uint16_t UI_TEMP_HI_Y = 54;
 static const uint16_t UI_TEMP_HI_W = 36;
 static const uint16_t UI_TEMP_HI_H = 21;
 
-// Temp Current: placement * dimensions
+// Temp Current: placement & dimensions
 static const uint16_t UI_TEMP_CUR_X = 4;
 static const uint16_t UI_TEMP_CUR_Y = 79;
 static const uint16_t UI_TEMP_CUR_W = 36;
 static const uint16_t UI_TEMP_CUR_H = 21;
 
-// Temp Low: placement * dimensions
+// Temp Low: placement & dimensions
 static const uint16_t UI_TEMP_LO_X = 4;
 static const uint16_t UI_TEMP_LO_Y = 104;
 static const uint16_t UI_TEMP_LO_W = 36;
 static const uint16_t UI_TEMP_LO_H = 21;
 
-// Conditions: placement * dimensions
+// Conditions: placement & dimensions
 static const uint16_t UI_CONDITIONS_X = 4;
 static const uint16_t UI_CONDITIONS_Y = 128;
 static const uint16_t UI_CONDITIONS_W = 36;
 static const uint16_t UI_CONDITIONS_H = 36;
 
-// Sunrise / Sunset Display: placement * dimensions
+// Sunlight Labels: placement & dimensions
+static const uint16_t UI_SUNLIGHT_LABELS_X = 44;
+static const uint16_t UI_SUNLIGHT_LABELS_Y = 154;
+static const uint16_t UI_SUNLIGHT_LABELS_W = 96;
+static const uint16_t UI_SUNLIGHT_LABELS_H = 4;
+static const uint16_t UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL = 1;
+static const uint16_t UI_SUNLIGHT_LABELS_SEPARATION = 2;
+
+// Sunrise / Sunset Display: placement & dimensions
 static const uint16_t UI_SUNRISE_SUNSET_X = 44;
 static const uint16_t UI_SUNRISE_SUNSET_Y = 160;
 static const uint16_t UI_SUNRISE_SUNSET_W = 96;
@@ -93,11 +108,12 @@ static const int SUN_INDEX_BITMAP_H = 3;
 static GBitmap *s_bitmap_sun_index;
 
 // BitmapInfo[] Arrays to hold BitMaps
-static GBitmap *s_bitmap_numbers_lg[10];
-static BitmapInfo s_bitmap_numbers_s_light[13];
-static BitmapInfo s_bitmap_numbers_s_dark[13];
-static BitmapInfo s_bitmap_numbers_xs_light[11];
-static BitmapInfo s_bitmap_numbers_xs_dark[11];
+static GBitmap *s_bitmap_numbers_lg[14];
+static BitmapInfo s_bitmap_numbers_s_light[14];
+static BitmapInfo s_bitmap_numbers_s_dark[14];
+static BitmapInfo s_bitmap_numbers_xs_light[14];
+static BitmapInfo s_bitmap_numbers_xs_dark[14];
+static BitmapInfo s_bitmap_numbers_xxs_light[14];
 
 // BitmapLayers
 static BitmapLayer *s_bitmap_layer_background;
@@ -119,6 +135,7 @@ static Layer *s_layer_steps;
 static Layer *s_layer_temp_high;
 static Layer *s_layer_temp_current;
 static Layer *s_layer_temp_low;
+static Layer *s_layer_sunlight_labels;
 static Layer *s_layer_sunrise_sunset_bars;
 
 // Conditions GBitmap and BitmapLayer
@@ -164,6 +181,9 @@ int calculate_string_width_px(char *str, BitmapInfo *bitmapInfoArray, uint16_t s
         break;
       case '~':
         total_width += bitmapInfoArray[INDEX_LOADING].width;
+        break;
+      case ':':
+        total_width += bitmapInfoArray[INDEX_COLON].width;
         break;
       default:
         break;
@@ -211,6 +231,9 @@ void draw_string(GContext *ctx, char *str, int x_start, int y, BitmapInfo *bitma
         current_width = bitmapInfoArray[INDEX_LOADING].width;
         graphics_draw_bitmap_in_rect(ctx, bitmapInfoArray[INDEX_LOADING].gbitmap, GRect(x_current, y, bitmapInfoArray[INDEX_LOADING].width, bitmapInfoArray[INDEX_LOADING].height));
         break;
+      case ':':
+        current_width = bitmapInfoArray[INDEX_COLON].width;
+        graphics_draw_bitmap_in_rect(ctx, bitmapInfoArray[INDEX_COLON].gbitmap, GRect(x_current, y, bitmapInfoArray[INDEX_COLON].width, bitmapInfoArray[INDEX_COLON].height));
       default:
         break;
     }
@@ -375,6 +398,78 @@ static void layer_temp_low_update_proc(Layer *layer, GContext *ctx) {
 }
 
 /**
+ * @brief Sunlight Labels: layer_update_proc
+ */
+static void layer_sunlight_labels_update_proc(Layer *layer, GContext *ctx) {
+  struct tm sunrise_time = *localtime((time_t *)&s_sunrise_seconds);
+  struct tm sunset_time = *localtime((time_t *)&s_sunset_seconds);
+
+  int is_24h_style = clock_is_24h_style();
+  
+  // Sunrise Label String
+  static char sunrise_label[] = "00:00";
+  int sunrise_hour = sunrise_time.tm_hour;
+  int sunrise_min = sunrise_time.tm_min;
+  if (is_24h_style == false) {
+    if (sunrise_hour > 12) {
+      sunrise_hour -= 12;
+    }
+    else if (sunrise_hour == 0) {
+      sunrise_hour = 12;
+    }
+    // TODO - check if user wants leading zero on 12-hr format or not.
+    snprintf(sunrise_label, sizeof(sunrise_label), "%d:%02d", sunrise_hour, sunrise_min);
+  }
+  else {
+    snprintf(sunrise_label, sizeof(sunrise_label), "%02d:%02d", sunrise_hour, sunrise_min);
+  }
+
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Sunrise Label:[%s]", sunrise_label);
+  
+  
+  // Sunset Label String
+  static char sunset_label[] = "00:00";
+  int sunset_hour = sunset_time.tm_hour;
+  int sunset_min = sunset_time.tm_min;
+  if (is_24h_style == false) {
+    if (sunset_hour > 12) {
+      sunset_hour -= 12;
+    }
+    else if (sunset_hour == 0) {
+      sunset_hour = 12;
+    }
+    // TODO - check if user wants leading zero on 12-hr format or not.
+    snprintf(sunset_label, sizeof(sunset_label), "%d:%02d", sunset_hour, sunset_min);
+  }
+  else {
+    snprintf(sunset_label, sizeof(sunset_label), "%02d:%02d", sunset_hour, sunset_min);
+  }
+
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Sunset Label:[%s]", sunset_label);
+
+  // Draw Labels
+  int sunrise_label_w = calculate_string_width_px(sunrise_label, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
+  int sunset_label_w = calculate_string_width_px(sunset_label, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
+
+  // Convert seconds to minutes, and divide by 15 - since each pixel represents a 15-min interval.
+  time_t midnight_today_seconds = get_midnight_today_seconds();
+  int sunrise_x = round((double)((s_sunrise_seconds - midnight_today_seconds) / 60) / 15);
+  int sunset_x = round((double)((s_sunset_seconds - midnight_today_seconds) / 60) / 15) - sunset_label_w; // move this left so it sits within the sun area.
+
+  // If the labels overlap, move them to the outsides of the sunrise / sunset locations.
+  if (sunset_x >= sunrise_x && sunset_x <= (sunrise_x + sunrise_label_w + UI_SUNLIGHT_LABELS_SEPARATION)) {
+    sunrise_x -= sunrise_label_w;
+    sunset_x += sunset_label_w;
+  }
+
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Current sunrise/sunset seconds: sunrise[%ld] sunset[%ld]", s_sunrise_seconds, s_sunset_seconds);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "About to draw labels: sunrise:[%s] sunset:[%s]", sunrise_label, sunset_label);
+
+  draw_string(ctx, sunrise_label, sunrise_x, 0, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
+  draw_string(ctx, sunset_label, sunset_x, 0, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
+}
+
+/**
  * @brief Sunrise / Sunset Display: layer_update_proc
  */
 static void layer_sunrise_sunset_update_proc(Layer *layer, GContext *ctx) {
@@ -385,7 +480,6 @@ static void layer_sunrise_sunset_update_proc(Layer *layer, GContext *ctx) {
   graphics_context_set_stroke_color(ctx, GColorWhite);
   graphics_context_set_fill_color(ctx, GColorWhite);
   
-  // Convert seconds to minutes, and divide by 15 - since each pixel represents a 15-min interval.
   time_t midnight_today_seconds = get_midnight_today_seconds();
 
   // TODO - add some special-case handling - what if sunset comes before sunrise some day, or it's all sun, or no sun day.. 
@@ -397,12 +491,13 @@ static void layer_sunrise_sunset_update_proc(Layer *layer, GContext *ctx) {
     && (s_sunrise_seconds > midnight_today_seconds))) {
     APP_LOG(APP_LOG_LEVEL_ERROR, "Non-standard sunrise[%ld] and sunset[%ld] times. Will not display.", s_sunrise_seconds, s_sunset_seconds);
     // Draw one rectangle without data.
-    graphics_draw_rect(ctx, GRect(0, 0, UI_SUNRISE_SUNSET_W, UI_SUNRISE_SUNSET_H));
+    graphics_draw_rect(ctx, bounds);
     return;
   }
 
   // Note: x and y here is relative to the layer, not the entire screen.
 
+  // Convert seconds to minutes, and divide by 15 - since each pixel represents a 15-min interval.
   int sunrise_x = round((double)((s_sunrise_seconds - midnight_today_seconds) / 60) / 15);
   int sunset_x = round((double)((s_sunset_seconds - midnight_today_seconds) / 60) / 15);
 
@@ -625,7 +720,12 @@ static void main_window_load(Window *window) {
   s_bitmap_numbers_lg[7] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_7_V2);
   s_bitmap_numbers_lg[8] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_8);
   s_bitmap_numbers_lg[9] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_9_V4);
-
+  // Fill remaining indexes with zero
+  s_bitmap_numbers_lg[INDEX_DASH] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_0);
+  s_bitmap_numbers_lg[INDEX_DEGREE] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_0);
+  s_bitmap_numbers_lg[INDEX_LOADING] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_0);
+  s_bitmap_numbers_lg[INDEX_COLON] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_LG_0);
+  
   // S Light
   s_bitmap_numbers_s_light[0] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_0_LIGHT), .width = S_WIDTH, .height = S_HEIGHT};
   s_bitmap_numbers_s_light[1] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_1_LIGHT), .width = S_WIDTH_1, .height = S_HEIGHT};
@@ -640,6 +740,8 @@ static void main_window_load(Window *window) {
   s_bitmap_numbers_s_light[INDEX_DASH] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_DASH_LIGHT), .width = S_WIDTH_DASH, .height = S_HEIGHT};
   s_bitmap_numbers_s_light[INDEX_DEGREE] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_DEGREE_LIGHT), .width = S_WIDTH_DEGREE, .height = S_HEIGHT};
   s_bitmap_numbers_s_light[INDEX_LOADING] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_LOADING_LIGHT), .width = S_WIDTH_LOADING, .height = S_HEIGHT};
+  // Fill remaining indexes with zero
+  s_bitmap_numbers_s_light[INDEX_COLON] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_0_LIGHT), .width = S_WIDTH, .height = S_HEIGHT};
 
   // S Dark
   s_bitmap_numbers_s_dark[0] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_0_DARK), .width = S_WIDTH, .height = S_HEIGHT};
@@ -655,6 +757,8 @@ static void main_window_load(Window *window) {
   s_bitmap_numbers_s_dark[INDEX_DASH] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_DASH_DARK), .width = S_WIDTH_DASH, .height = S_HEIGHT};
   s_bitmap_numbers_s_dark[INDEX_DEGREE] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_DEGREE_DARK), .width = S_WIDTH_DEGREE, .height = S_HEIGHT};
   s_bitmap_numbers_s_dark[INDEX_LOADING] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_LOADING_DARK), .width = S_WIDTH_LOADING, .height = S_HEIGHT};
+  // Fill remaining indexes with zero
+  s_bitmap_numbers_s_dark[INDEX_COLON] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_S_0_DARK), .width = S_WIDTH, .height = S_HEIGHT};
 
   // XS Light
   s_bitmap_numbers_xs_light[0] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_0_LIGHT), .width = XS_WIDTH, .height = XS_HEIGHT};
@@ -668,6 +772,10 @@ static void main_window_load(Window *window) {
   s_bitmap_numbers_xs_light[8] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_8_LIGHT), .width = XS_WIDTH, .height = XS_HEIGHT};
   s_bitmap_numbers_xs_light[9] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_9_LIGHT), .width = XS_WIDTH, .height = XS_HEIGHT};
   s_bitmap_numbers_xs_light[INDEX_DASH] =(BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_DASH_LIGHT), .width = XS_WIDTH_DASH, .height = XS_HEIGHT};
+  // Fill remaining indexes with zero
+  s_bitmap_numbers_xs_light[INDEX_DEGREE] =(BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_0_LIGHT), .width = XS_WIDTH, .height = XS_HEIGHT};
+  s_bitmap_numbers_xs_light[INDEX_LOADING] =(BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_0_LIGHT), .width = XS_WIDTH, .height = XS_HEIGHT};
+  s_bitmap_numbers_xs_light[INDEX_COLON] =(BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_0_LIGHT), .width = XS_WIDTH, .height = XS_HEIGHT};
 
   // XS Dark
   s_bitmap_numbers_xs_dark[0] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_0_DARK), .width = XS_WIDTH, .height = XS_HEIGHT};
@@ -681,7 +789,30 @@ static void main_window_load(Window *window) {
   s_bitmap_numbers_xs_dark[8] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_8_DARK), .width = XS_WIDTH, .height = XS_HEIGHT};
   s_bitmap_numbers_xs_dark[9] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_9_DARK), .width = XS_WIDTH, .height = XS_HEIGHT};
   s_bitmap_numbers_xs_dark[INDEX_DASH] =(BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_DASH_DARK), .width = XS_WIDTH_DASH, .height = XS_HEIGHT};
+  // Fill remaining indexes with zero
+  s_bitmap_numbers_xs_dark[INDEX_DEGREE] =(BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_0_DARK), .width = XS_WIDTH, .height = XS_HEIGHT};
+  s_bitmap_numbers_xs_dark[INDEX_LOADING] =(BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_0_DARK), .width = XS_WIDTH, .height = XS_HEIGHT};
+  s_bitmap_numbers_xs_dark[INDEX_COLON] =(BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XS_0_DARK), .width = XS_WIDTH, .height = XS_HEIGHT};
 
+  // XXS Light
+  s_bitmap_numbers_xxs_light[0] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XXS_0_LIGHT), .width = XXS_WIDTH, .height = XXS_HEIGHT};
+  s_bitmap_numbers_xxs_light[1] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XXS_1_LIGHT), .width = XXS_WIDTH_1, .height = XXS_HEIGHT};
+  s_bitmap_numbers_xxs_light[2] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XXS_2_LIGHT), .width = XXS_WIDTH, .height = XXS_HEIGHT};
+  s_bitmap_numbers_xxs_light[3] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XXS_3_LIGHT), .width = XXS_WIDTH, .height = XXS_HEIGHT};
+  s_bitmap_numbers_xxs_light[4] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XXS_4_LIGHT), .width = XXS_WIDTH, .height = XXS_HEIGHT};
+  s_bitmap_numbers_xxs_light[5] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XXS_5_LIGHT), .width = XXS_WIDTH, .height = XXS_HEIGHT};
+  s_bitmap_numbers_xxs_light[6] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XXS_6_LIGHT), .width = XXS_WIDTH, .height = XXS_HEIGHT};
+  s_bitmap_numbers_xxs_light[7] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XXS_7_LIGHT), .width = XXS_WIDTH, .height = XXS_HEIGHT};
+  s_bitmap_numbers_xxs_light[8] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XXS_8_LIGHT), .width = XXS_WIDTH, .height = XXS_HEIGHT};
+  s_bitmap_numbers_xxs_light[9] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XXS_9_LIGHT), .width = XXS_WIDTH, .height = XXS_HEIGHT};
+  // Fill remaining indexes with zero
+  s_bitmap_numbers_xxs_light[INDEX_DASH] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XXS_0_LIGHT), .width = XXS_WIDTH, .height = XXS_HEIGHT};
+  s_bitmap_numbers_xxs_light[INDEX_DEGREE] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XXS_0_LIGHT), .width = XXS_WIDTH, .height = XXS_HEIGHT};
+  s_bitmap_numbers_xxs_light[INDEX_LOADING] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XXS_0_LIGHT), .width = XXS_WIDTH, .height = XXS_HEIGHT};
+  // Set Colon character
+  s_bitmap_numbers_xxs_light[INDEX_COLON] = (BitmapInfo) {.gbitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_NUMBER_XXS_COLON_LIGHT), .width = XXS_WIDTH_COLON, .height = XXS_HEIGHT};
+
+  // Condition Bitmaps
   s_bitmap_conditions[0] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CONDITION_CLEAR_SUN_LIGHT);
   s_bitmap_conditions[1] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CONDITION_CLEAR_MOON_LIGHT);
   s_bitmap_conditions[2] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CONDITION_PARTLY_CLOUDY_SUN_LIGHT);
@@ -764,6 +895,10 @@ static void main_window_load(Window *window) {
   s_layer_sunrise_sunset_bars = layer_create(GRect(UI_SUNRISE_SUNSET_X, UI_SUNRISE_SUNSET_Y, UI_SUNRISE_SUNSET_W, UI_SUNRISE_SUNSET_H));
   layer_set_update_proc(s_layer_sunrise_sunset_bars, layer_sunrise_sunset_update_proc);
   layer_add_child(root_layer, s_layer_sunrise_sunset_bars);
+  
+  s_layer_sunlight_labels = layer_create(GRect(UI_SUNLIGHT_LABELS_X, UI_SUNLIGHT_LABELS_Y, UI_SUNLIGHT_LABELS_W, UI_SUNLIGHT_LABELS_H));
+  layer_set_update_proc(s_layer_sunlight_labels, layer_sunlight_labels_update_proc);
+  layer_add_child(root_layer, s_layer_sunlight_labels);
 }
 
 /**
@@ -788,6 +923,7 @@ static void main_window_unload(Window *window) {
   layer_destroy(s_layer_temp_high);
   layer_destroy(s_layer_temp_current);
   layer_destroy(s_layer_temp_low);
+  layer_destroy(s_layer_sunlight_labels);
 
   array_length = sizeof(s_bitmap_numbers_s_light) / sizeof(*s_bitmap_numbers_s_light);
   for (size_t i = 0; i < array_length; i++) {
@@ -807,6 +943,11 @@ static void main_window_unload(Window *window) {
   array_length = sizeof(s_bitmap_numbers_xs_dark) / sizeof(*s_bitmap_numbers_xs_dark);
   for (size_t i = 0; i < array_length; i++) {
     gbitmap_destroy(s_bitmap_numbers_xs_dark[i].gbitmap);
+  }
+
+  array_length = sizeof(s_bitmap_numbers_xxs_light) / sizeof(*s_bitmap_numbers_xxs_light);
+  for (size_t i = 0; i < array_length; i++) {
+    gbitmap_destroy(s_bitmap_numbers_xxs_light[i].gbitmap);
   }
 
   array_length = sizeof(s_bitmap_conditions) / sizeof(*s_bitmap_conditions);
@@ -855,11 +996,13 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   if (sunrise_tuple) {
     s_sunrise_seconds = (long)sunrise_tuple->value->int32;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received Sunrise[%ld]", s_sunrise_seconds);
+    layer_mark_dirty(s_layer_sunlight_labels);
     layer_mark_dirty(s_layer_sunrise_sunset_bars);
   }
   if (sunset_tuple) {
     s_sunset_seconds = (long)sunset_tuple->value->int32;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received Sunset[%ld]", s_sunset_seconds);
+    layer_mark_dirty(s_layer_sunlight_labels);
     layer_mark_dirty(s_layer_sunrise_sunset_bars);
   }
   if (conditions_tuple) {
