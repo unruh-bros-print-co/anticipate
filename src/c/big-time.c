@@ -584,7 +584,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   time_t current_seconds = mktime(tick_time);
 
   // Request weather info every 30 minutes, or within 2 minutes after midnight
-  if (tick_time->tm_min %30 == 0 || (current_seconds > midnight_today_seconds && current_seconds <= (midnight_today_seconds + 120))) {
+  if (tick_time->tm_min %30 == 0 || (current_seconds >= midnight_today_seconds && current_seconds <= (midnight_today_seconds + 120))) {
   // if (tick_time->tm_min %1 == 0) {
     // Begin dictionary
     DictionaryIterator *iter;
