@@ -1,78 +1,82 @@
 #include <pebble.h>
 #include "bitmap_info.h"
 
-const uint16_t L_TENS_X = 44;
-const uint16_t L_TENS_X_OFFSET = 17;
-const uint16_t L_ONES_X = 94;
-const uint16_t L_HOURS_Y = 4;
-const uint16_t L_MINUTES_Y = 79;
-const uint16_t L_WIDTH = 46; 
-const uint16_t L_HEIGHT = 71;
+// (L)arge number placement & dimensions
+static const uint16_t L_TENS_X = 44;
+static const uint16_t L_TENS_X_OFFSET = 17;
+static const uint16_t L_ONES_X = 94;
+static const uint16_t L_HOURS_Y = 4;
+static const uint16_t L_MINUTES_Y = 79;
+static const uint16_t L_WIDTH = 46; 
+static const uint16_t L_HEIGHT = 71;
 
-const uint16_t S_WIDTH = 8;
-const uint16_t S_WIDTH_1 = 5;
-const uint16_t S_WIDTH_DASH = 4;
-const uint16_t S_WIDTH_DEGREE = 4;
-const uint16_t S_WIDTH_LOADING = 4;
-const uint16_t S_HEIGHT = 13;
+// (S)mall number placement & dimensions
+static const uint16_t S_WIDTH = 8;
+static const uint16_t S_WIDTH_1 = 5;
+static const uint16_t S_WIDTH_DASH = 4;
+static const uint16_t S_WIDTH_DEGREE = 4;
+static const uint16_t S_WIDTH_LOADING = 4;
+static const uint16_t S_HEIGHT = 13;
 
-const uint16_t XS_WIDTH = 6;
-const uint16_t XS_WIDTH_1 = 4;
-const uint16_t XS_WIDTH_DASH = 4;
-const uint16_t XS_HEIGHT = 10;
+// E(x)tra (S)mall number placement & dimensions
+static const uint16_t XS_WIDTH = 6;
+static const uint16_t XS_WIDTH_1 = 4;
+static const uint16_t XS_WIDTH_DASH = 4;
+static const uint16_t XS_HEIGHT = 10;
 
 // Special character indexes
-const uint16_t INDEX_DASH = 10; // '-'
-const uint16_t INDEX_DEGREE = 11; // '°'
-const uint16_t INDEX_LOADING = 12; // '...'
+static const uint16_t INDEX_DASH = 10; // '-'
+static const uint16_t INDEX_DEGREE = 11; // '°'
+static const uint16_t INDEX_LOADING = 12; // '...'
 
-// UI element dimensions
+// =-=-=- UI element placement & dimensions =-=-=-
 
-// Date
-const uint16_t UI_DATE_X = 4;
-const uint16_t UI_DATE_Y = 4;
-const uint16_t UI_DATE_W = 36;
-const uint16_t UI_DATE_H = 21;
-const uint16_t UI_DATE_SPACING = 1;
-const uint16_t UI_DATE_CONTENT_Y = 6;
+// Date: placement * dimensions
+static const uint16_t UI_DATE_X = 4;
+static const uint16_t UI_DATE_Y = 4;
+static const uint16_t UI_DATE_W = 36;
+static const uint16_t UI_DATE_H = 21;
+static const uint16_t UI_DATE_SPACING = 1;
+static const uint16_t UI_DATE_CONTENT_Y = 6;
 
-// Steps
-const uint16_t UI_STEPS_X = 4;
-const uint16_t UI_STEPS_Y = 29;
-const uint16_t UI_STEPS_W = 36;
-const uint16_t UI_STEPS_H = 21;
-const uint16_t UI_STEPS_SPACING = 1;
-const uint16_t UI_STEPS_CONTENT_Y = 6;
+// Steps: placement * dimensions
+static const uint16_t UI_STEPS_X = 4;
+static const uint16_t UI_STEPS_Y = 29;
+static const uint16_t UI_STEPS_W = 36;
+static const uint16_t UI_STEPS_H = 21;
+static const uint16_t UI_STEPS_SPACING = 1;
+static const uint16_t UI_STEPS_CONTENT_Y = 6;
 
-// Temp (All)
-const uint16_t UI_TEMP_SPACING = 1;
-const uint16_t UI_TEMP_CONTENT_Y = 4;
-const uint16_t UI_TEMP_OFFSET = 1;
+// Temp (All): placement * dimensions
+static const uint16_t UI_TEMP_SPACING = 1;
+static const uint16_t UI_TEMP_CONTENT_Y = 4;
+static const uint16_t UI_TEMP_OFFSET = 1;
 
-// Temp High
-const uint16_t UI_TEMP_HI_X = 4;
-const uint16_t UI_TEMP_HI_Y = 54;
-const uint16_t UI_TEMP_HI_W = 36;
-const uint16_t UI_TEMP_HI_H = 21;
+// Temp High: placement * dimensions
+static const uint16_t UI_TEMP_HI_X = 4;
+static const uint16_t UI_TEMP_HI_Y = 54;
+static const uint16_t UI_TEMP_HI_W = 36;
+static const uint16_t UI_TEMP_HI_H = 21;
 
-// Temp Current
-const uint16_t UI_TEMP_CUR_X = 4;
-const uint16_t UI_TEMP_CUR_Y = 79;
-const uint16_t UI_TEMP_CUR_W = 36;
-const uint16_t UI_TEMP_CUR_H = 21;
+// Temp Current: placement * dimensions
+static const uint16_t UI_TEMP_CUR_X = 4;
+static const uint16_t UI_TEMP_CUR_Y = 79;
+static const uint16_t UI_TEMP_CUR_W = 36;
+static const uint16_t UI_TEMP_CUR_H = 21;
 
-// Temp Low
-const uint16_t UI_TEMP_LO_X = 4;
-const uint16_t UI_TEMP_LO_Y = 104;
-const uint16_t UI_TEMP_LO_W = 36;
-const uint16_t UI_TEMP_LO_H = 21;
+// Temp Low: placement * dimensions
+static const uint16_t UI_TEMP_LO_X = 4;
+static const uint16_t UI_TEMP_LO_Y = 104;
+static const uint16_t UI_TEMP_LO_W = 36;
+static const uint16_t UI_TEMP_LO_H = 21;
 
-// Conditions
-const uint16_t UI_CONDITIONS_X = 4;
-const uint16_t UI_CONDITIONS_Y = 128;
-const uint16_t UI_CONDITIONS_W = 36;
-const uint16_t UI_CONDITIONS_H = 36;
+// Conditions: placement * dimensions
+static const uint16_t UI_CONDITIONS_X = 4;
+static const uint16_t UI_CONDITIONS_Y = 128;
+static const uint16_t UI_CONDITIONS_W = 36;
+static const uint16_t UI_CONDITIONS_H = 36;
 
+// Global Variables
 static struct tm s_current_time;
 static int s_current_steps = 0;
 static bool s_temp_high_loading = true;
@@ -85,23 +89,27 @@ static long s_sunrise_seconds = 0;
 static long s_sunset_seconds = 0;
 static char s_condition[50];
 
+// Layers: Main Window & Background
 static Window *s_main_window;
 // static TextLayer *s_text_layer;
 static GBitmap *s_bitmap_background;
 
-static int s_sunrise_sunset_ui_start_x = 45;
-static int s_sun_index_y = 165;
-static int s_sun_index_bitmap_left_offset = 3;
-static int s_sun_index_bitmap_width = 4;
-static int s_sun_index_bitmap_height = 3;
+// UI: Sun Index / Marker
+static const int SUNRISE_SUNSET_UI_START_X = 45;
+static const int SUN_INDEX_Y = 165;
+static const int SUN_INDEX_BITMAP_LEFT_OFFSET = 3;
+static const int SUN_INDEX_BITMAP_W = 4;
+static const int SUN_INDEX_BITMAP_H = 3;
 static GBitmap *s_bitmap_sun_index;
 
+// BitmapInfo[] Arrays to hold BitMaps
 static GBitmap *s_bitmap_numbers_lg[10];
 static BitmapInfo s_bitmap_numbers_s_light[13];
 static BitmapInfo s_bitmap_numbers_s_dark[13];
 static BitmapInfo s_bitmap_numbers_xs_light[11];
 static BitmapInfo s_bitmap_numbers_xs_dark[11];
 
+// BitmapLayers
 static BitmapLayer *s_bitmap_layer_background;
 static BitmapLayer *s_bitmap_layer_sun_index;
 static BitmapLayer *s_bitmap_layer_time_h1;
@@ -111,15 +119,21 @@ static BitmapLayer *s_bitmap_layer_time_m1;
 static BitmapLayer *s_bitmap_layer_time_m1_offset;
 static BitmapLayer *s_bitmap_layer_time_m2;
 
+// Layers
 static Layer *s_layer_date;
 static Layer *s_layer_steps;
 static Layer *s_layer_temp_high;
 static Layer *s_layer_temp_current;
 static Layer *s_layer_temp_low;
 
+// Conditions GBitmap and BitmapLayer
 static GBitmap *s_bitmap_conditions[10];
 static BitmapLayer *s_bitmap_layer_conditions;
 
+/**
+ * @brief Calculates the width in pixels, of a given String of Characters, 
+ * when using the given array of Bitmap characters to draw, as well as how man px go in between each character.
+ */
 int calculate_string_width_px(char *str, BitmapInfo *bitmapInfoArray, uint16_t spacing_px) {
   int total_width = 0;
 
@@ -155,6 +169,10 @@ int calculate_string_width_px(char *str, BitmapInfo *bitmapInfoArray, uint16_t s
   return total_width;
 }
 
+/**
+ * @brief Draws the given String of characters, starting at the x_start, y coordinates, 
+ * using the provided character Bitmap array, and spacing width (in px).
+ */
 void draw_string(GContext *ctx, char *str, int x_start, int y, BitmapInfo *bitmapInfoArray, uint16_t spacing_px) {
   int x_current = x_start;
   
@@ -194,6 +212,9 @@ void draw_string(GContext *ctx, char *str, int x_start, int y, BitmapInfo *bitma
   }
 }
 
+/**
+ * @brief Date:  layer_update_proc
+ */
 static void layer_date_update_proc(Layer *layer, GContext *ctx) {
   
   static char date_str[] = "MM-DD";
@@ -210,6 +231,9 @@ static void layer_date_update_proc(Layer *layer, GContext *ctx) {
   draw_string(ctx, date_str, starting_x, UI_DATE_CONTENT_Y, s_bitmap_numbers_xs_light, UI_DATE_SPACING);
 }
 
+/**
+* @brief Steps: layer_update_proc
+*/
 static void layer_steps_update_proc(Layer *layer, GContext *ctx) {
   static char steps_str[] = "00000";
   snprintf(steps_str, sizeof(steps_str), "%03d", s_current_steps);
@@ -225,6 +249,9 @@ static void layer_steps_update_proc(Layer *layer, GContext *ctx) {
   draw_string(ctx, steps_str, starting_x, UI_STEPS_CONTENT_Y, s_bitmap_numbers_xs_dark, UI_STEPS_SPACING);
 }
 
+/**
+ * @brief Temp-HI: layer_update_proc
+ */
 static void layer_temp_high_update_proc(Layer *layer, GContext *ctx) {
   static char temp_high_str[] = "-2000°";
   if (s_temp_high_loading) {
@@ -248,6 +275,9 @@ static void layer_temp_high_update_proc(Layer *layer, GContext *ctx) {
   draw_string(ctx, temp_high_str, starting_x, UI_TEMP_CONTENT_Y, s_bitmap_numbers_s_light, UI_TEMP_SPACING);
 }
 
+/**
+ * @brief Temp-Current: layer_update_proc
+ */
 static void layer_temp_current_update_proc(Layer *layer, GContext *ctx) {
   static char temp_current_str[] = "-2000°";
   if (s_temp_current_loading) {
@@ -271,6 +301,9 @@ static void layer_temp_current_update_proc(Layer *layer, GContext *ctx) {
   draw_string(ctx, temp_current_str, starting_x, UI_TEMP_CONTENT_Y, s_bitmap_numbers_s_dark, UI_TEMP_SPACING);
 }
 
+/**
+ * @brief Temp-LO: layer_update_proc
+ */
 static void layer_temp_low_update_proc(Layer *layer, GContext *ctx) {
   static char temp_low_str[] = "-2000°";
   if (s_temp_low_loading) {
@@ -294,6 +327,9 @@ static void layer_temp_low_update_proc(Layer *layer, GContext *ctx) {
   draw_string(ctx, temp_low_str, starting_x, UI_TEMP_CONTENT_Y, s_bitmap_numbers_s_light, UI_TEMP_SPACING);
 }
 
+/**
+ * @brief Time: Update function
+ */
 static void update_time(struct tm *tick_time) {
 
   int display_hour = tick_time->tm_hour;
@@ -340,6 +376,9 @@ static void update_time(struct tm *tick_time) {
   }
 }
 
+/**
+ * @brief Date: update function
+ */
 static void update_date(struct tm *tick_time) {
   // TODO add logic so you only update the UI when the day changes for efficiency
   layer_mark_dirty(s_layer_date);
@@ -352,11 +391,14 @@ static void update_sun_index(struct tm *tick_time) {
   int minute_of_day = hr * 60;
   minute_of_day += min;
 
-  int sun_index_x = s_sunrise_sunset_ui_start_x - s_sun_index_bitmap_left_offset + (minute_of_day / 15);
+  int sun_index_x = SUNRISE_SUNSET_UI_START_X - SUN_INDEX_BITMAP_LEFT_OFFSET + (minute_of_day / 15);
 
-  layer_set_frame(bitmap_layer_get_layer(s_bitmap_layer_sun_index), GRect(sun_index_x, s_sun_index_y, s_sun_index_bitmap_width, s_sun_index_bitmap_height));
+  layer_set_frame(bitmap_layer_get_layer(s_bitmap_layer_sun_index), GRect(sun_index_x, SUN_INDEX_Y, SUN_INDEX_BITMAP_W, SUN_INDEX_BITMAP_H));
 }
 
+/**
+* @brief Steps: update function
+*/
 static void update_steps() {
   #if defined(PBL_HEALTH)
 
@@ -378,6 +420,9 @@ static void update_steps() {
   #endif
 }
 
+/**
+ * @brief Gets the unix-seconds value of midnight (start of day) this morning.
+ */
 static time_t get_midnight_today() {
   // 1. Get the current time
   time_t now = time(NULL);
@@ -397,6 +442,9 @@ static time_t get_midnight_today() {
   return mktime(t);
 }
 
+/**
+ * @brief Determine if it's currently night.
+ */
 static bool is_night() {
   time_t midnight_today = get_midnight_today();
   if (s_sunrise_seconds > midnight_today && s_sunset_seconds > midnight_today) {
@@ -409,6 +457,9 @@ static bool is_night() {
   }
 }
 
+/**
+ * @brief Conditions: update function
+ */
 static void update_conditions() {
 
   if (strcmp(s_condition, "CLEAR") == 0) {
@@ -457,6 +508,9 @@ static void update_conditions() {
   layer_mark_dirty(bitmap_layer_get_layer(s_bitmap_layer_conditions));
 }
 
+/**
+ * @brief Handler function for when a 'tick' event occurs.
+ */
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   s_current_time = *tick_time;
 
@@ -487,6 +541,9 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   }
 }
 
+/**
+ * @brief Main window loading function
+ */
 static void main_window_load(Window *window) {
   Layer *root_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(root_layer);
@@ -578,7 +635,7 @@ static void main_window_load(Window *window) {
   bitmap_layer_set_bitmap(s_bitmap_layer_background, s_bitmap_background);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_background));
 
-  s_bitmap_layer_sun_index = bitmap_layer_create(GRect(s_sunrise_sunset_ui_start_x, s_sun_index_y, s_sun_index_bitmap_width, s_sun_index_bitmap_height)); // initial sun_index at 12:00am.
+  s_bitmap_layer_sun_index = bitmap_layer_create(GRect(SUNRISE_SUNSET_UI_START_X, SUN_INDEX_Y, SUN_INDEX_BITMAP_W, SUN_INDEX_BITMAP_H)); // initial sun_index at 12:00am.
   s_bitmap_sun_index = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_SUN_INDEX);
   bitmap_layer_set_bitmap(s_bitmap_layer_sun_index, s_bitmap_sun_index);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_sun_index));
@@ -619,7 +676,7 @@ static void main_window_load(Window *window) {
   layer_set_update_proc(s_layer_temp_high, layer_temp_high_update_proc);
   layer_add_child(root_layer, s_layer_temp_high);
 
-  s_layer_temp_current = layer_create(GRect(UI_TEMP_CUR_X, UI_TEMP_CUR_Y, UI_TEMP_CUR_W, UI_TEMP_HI_H));
+  s_layer_temp_current = layer_create(GRect(UI_TEMP_CUR_X, UI_TEMP_CUR_Y, UI_TEMP_CUR_W, UI_TEMP_CUR_H));
   layer_set_update_proc(s_layer_temp_current, layer_temp_current_update_proc);
   layer_add_child(root_layer, s_layer_temp_current);
 
@@ -641,6 +698,9 @@ static void main_window_load(Window *window) {
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmap_layer_conditions));
 }
 
+/**
+ * @brief Main window unloading function
+ */
 static void main_window_unload(Window *window) {
   
   bitmap_layer_destroy(s_bitmap_layer_time_h1);
@@ -694,6 +754,9 @@ static void main_window_unload(Window *window) {
   bitmap_layer_destroy(s_bitmap_layer_background);
 }
 
+/**
+ * @brief Function for handling incoming callback messages from phone.
+ */
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Inbox received message!");
 
@@ -732,18 +795,30 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   }
 }
 
+/**
+ * @brief Function for handling dropped callback events.
+ */
 static void inbox_dropped_callback(AppMessageResult reason, void *context) {
   APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
 }
 
+/**
+ * @brief Function for handling failed callback events.
+ */
 static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context) {
   APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed!");
 }
 
+/**
+ * @brief Function for handling sent callback events.
+ */
 static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
 }
 
+/**
+ * @brief Function to initialize the application
+ */
 static void init() {
   s_main_window = window_create();
 
@@ -776,10 +851,16 @@ static void init() {
   tick_handler(tick_time, MINUTE_UNIT);
 }
 
+/**
+ * @brief Function to de-initializes the application
+ */
 static void deinit() {
   window_destroy(s_main_window);
 }
 
+/**
+ * @brief The main() function that runs the application.
+ */
 int main() {
   init();
   app_event_loop();
