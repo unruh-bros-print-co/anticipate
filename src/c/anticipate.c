@@ -91,9 +91,12 @@ static const uint16_t UI_SUNRISE_SUNSET_W = 96;
 static const uint16_t UI_SUNRISE_SUNSET_H = 10;
 static const uint16_t UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W = 19;
 static const uint16_t UI_SUNRISE_SUNSET_LOAD_BOX_MIDDLE_W = 50;
+static const uint16_t UI_SUNRISE_SUNSET_LOAD_BOX_LABEL_W = 17;
+static const uint16_t UI_SUNRISE_SUNSET_LOAD_BOX_LABEL_2_OFFSET = 34;
 static const uint16_t UI_SUNRISE_SUNSET_LOAD_BOX_SPACE_HORIZONTAL = 4;
 static const uint16_t UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL = 1;
 static const uint16_t UI_SUNLIGHT_LABELS_SEPARATION = 2;
+static const uint16_t UI_SUNLIGHT_LABELS_H = 4;
 static const uint16_t UI_SUNRISE_SUNSET_BARS_Y = 6;
 static const uint16_t UI_SUNRISE_SUNSET_BARS_H = 4;
 static const uint16_t UI_SUNRISE_SUNSET_BARS_SPACE_HORIZONTAL = 4;
@@ -412,19 +415,29 @@ static void layer_sunrise_sunset_update_proc(Layer *layer, GContext *ctx) {
   if (s_sunrise_sunset_loading) {
     graphics_draw_rect(ctx, GRect(
       0, 
-      0,
+      UI_SUNRISE_SUNSET_BARS_Y,
       UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W,
-      UI_SUNRISE_SUNSET_H));
+      UI_SUNRISE_SUNSET_BARS_H));
     graphics_draw_rect(ctx, GRect(
       UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W + UI_SUNRISE_SUNSET_LOAD_BOX_SPACE_HORIZONTAL,
-      0,
+      UI_SUNRISE_SUNSET_BARS_Y,
       UI_SUNRISE_SUNSET_LOAD_BOX_MIDDLE_W,
-      UI_SUNRISE_SUNSET_H));
+      UI_SUNRISE_SUNSET_BARS_H));
     graphics_draw_rect(ctx, GRect(
       UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W + UI_SUNRISE_SUNSET_LOAD_BOX_SPACE_HORIZONTAL + UI_SUNRISE_SUNSET_LOAD_BOX_MIDDLE_W + UI_SUNRISE_SUNSET_LOAD_BOX_SPACE_HORIZONTAL,
-      0,
+      UI_SUNRISE_SUNSET_BARS_Y,
       UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W,
-      UI_SUNRISE_SUNSET_H));
+      UI_SUNRISE_SUNSET_BARS_H));
+      graphics_draw_rect(ctx, GRect(
+      UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W + UI_SUNRISE_SUNSET_LOAD_BOX_SPACE_HORIZONTAL,
+      0,
+      UI_SUNRISE_SUNSET_LOAD_BOX_LABEL_W,
+      UI_SUNLIGHT_LABELS_H));
+      graphics_draw_rect(ctx, GRect(
+      UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W + UI_SUNRISE_SUNSET_LOAD_BOX_SPACE_HORIZONTAL + UI_SUNRISE_SUNSET_LOAD_BOX_LABEL_2_OFFSET,
+      0,
+      UI_SUNRISE_SUNSET_LOAD_BOX_LABEL_W,
+      UI_SUNLIGHT_LABELS_H));
     return;
   }
   
