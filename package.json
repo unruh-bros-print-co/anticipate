@@ -442,7 +442,7 @@
         {
           "type": "bitmap",
           "name": "IMAGE_NUMBER_XXS_8_LIGHT",
-          "file": "images/num-xxs-8.png"
+          "file": "images/num-xxs-8-v0.png"
         },
         {
           "type": "bitmap",
