@@ -328,7 +328,7 @@ static void layer_steps_update_proc(Layer *layer, GContext *ctx) {
 static void layer_temp_high_update_proc(Layer *layer, GContext *ctx) {
   static char temp_high_str[] = "-2000°";
   if (s_temp_high_loading) {
-    strcpy(temp_high_str, "~");
+    strcpy(temp_high_str, "--*");
   }
   else {
     snprintf(temp_high_str, sizeof(temp_high_str), "%d*", s_temp_high);
@@ -354,7 +354,7 @@ static void layer_temp_high_update_proc(Layer *layer, GContext *ctx) {
 static void layer_temp_current_update_proc(Layer *layer, GContext *ctx) {
   static char temp_current_str[] = "-2000°";
   if (s_temp_current_loading) {
-    strcpy(temp_current_str, "~");
+    strcpy(temp_current_str, "--*");
   }
   else {
     snprintf(temp_current_str, sizeof(temp_current_str), "%d*", s_temp_current);
@@ -380,7 +380,7 @@ static void layer_temp_current_update_proc(Layer *layer, GContext *ctx) {
 static void layer_temp_low_update_proc(Layer *layer, GContext *ctx) {
   static char temp_low_str[] = "-2000°";
   if (s_temp_low_loading) {
-    strcpy(temp_low_str, "~");
+    strcpy(temp_low_str, "--*");
   }
   else {
     snprintf(temp_low_str, sizeof(temp_low_str), "%d*", s_temp_low);
