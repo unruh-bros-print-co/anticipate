@@ -84,20 +84,19 @@ static const uint16_t UI_CONDITIONS_Y = 128;
 static const uint16_t UI_CONDITIONS_W = 36;
 static const uint16_t UI_CONDITIONS_H = 36;
 
-// Sunlight Labels: placement & dimensions
-static const uint16_t UI_SUNLIGHT_LABELS_X = 44;
-static const uint16_t UI_SUNLIGHT_LABELS_Y = 154;
-static const uint16_t UI_SUNLIGHT_LABELS_W = 96;
-static const uint16_t UI_SUNLIGHT_LABELS_H = 4;
-static const uint16_t UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL = 1;
-static const uint16_t UI_SUNLIGHT_LABELS_SEPARATION = 2;
-
 // Sunrise / Sunset Display: placement & dimensions
 static const uint16_t UI_SUNRISE_SUNSET_X = 44;
-static const uint16_t UI_SUNRISE_SUNSET_Y = 160;
+static const uint16_t UI_SUNRISE_SUNSET_Y = 154;
 static const uint16_t UI_SUNRISE_SUNSET_W = 96;
-static const uint16_t UI_SUNRISE_SUNSET_H = 4;
-static const uint16_t UI_SUNRISE_SUNSET_SPACE_HORIZONTAL = 4;
+static const uint16_t UI_SUNRISE_SUNSET_H = 10;
+static const uint16_t UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W = 19;
+static const uint16_t UI_SUNRISE_SUNSET_LOAD_BOX_MIDDLE_W = 50;
+static const uint16_t UI_SUNRISE_SUNSET_LOAD_BOX_SPACE_HORIZONTAL = 4;
+static const uint16_t UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL = 1;
+static const uint16_t UI_SUNLIGHT_LABELS_SEPARATION = 2;
+static const uint16_t UI_SUNRISE_SUNSET_BARS_Y = 6;
+static const uint16_t UI_SUNRISE_SUNSET_BARS_H = 4;
+static const uint16_t UI_SUNRISE_SUNSET_BARS_SPACE_HORIZONTAL = 4;
 
 // UI: Sun Index / Marker
 static const int SUN_INDEX_START_X = 45;
@@ -138,8 +137,7 @@ static Layer *s_layer_steps;
 static Layer *s_layer_temp_high;
 static Layer *s_layer_temp_current;
 static Layer *s_layer_temp_low;
-static Layer *s_layer_sunlight_labels;
-static Layer *s_layer_sunrise_sunset_bars;
+static Layer *s_layer_sunrise_sunset;
 
 // Conditions GBitmap and BitmapLayer
 static GBitmap *s_bitmap_conditions[10];
@@ -154,6 +152,7 @@ static bool s_temp_current_loading = true;
 static int s_temp_current = 0;
 static bool s_temp_low_loading = true;
 static int s_temp_low = 0;
+static bool s_sunrise_sunset_loading = true;
 static long s_sunrise_seconds = 0;
 static long s_sunset_seconds = 0;
 static char s_condition[50];
@@ -401,9 +400,80 @@ static void layer_temp_low_update_proc(Layer *layer, GContext *ctx) {
 }
 
 /**
- * @brief Sunlight Labels: layer_update_proc
+ * @brief Sunrise / Sunset Display: layer_update_proc
  */
-static void layer_sunlight_labels_update_proc(Layer *layer, GContext *ctx) {
+static void layer_sunrise_sunset_update_proc(Layer *layer, GContext *ctx) {
+  // Set the Graphics Context Colors for when its time to draw.
+  graphics_context_set_compositing_mode(ctx, GCompOpAssign);
+  graphics_context_set_stroke_color(ctx, GColorWhite);
+  graphics_context_set_fill_color(ctx, GColorWhite);
+
+  // If sunrise/sunset data is still loading, draw 3 placeholder boxes.
+  if (s_sunrise_sunset_loading) {
+    graphics_draw_rect(ctx, GRect(
+      0, 
+      0,
+      UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W,
+      UI_SUNRISE_SUNSET_H));
+    graphics_draw_rect(ctx, GRect(
+      UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W + UI_SUNRISE_SUNSET_LOAD_BOX_SPACE_HORIZONTAL,
+      0,
+      UI_SUNRISE_SUNSET_LOAD_BOX_MIDDLE_W,
+      UI_SUNRISE_SUNSET_H));
+    graphics_draw_rect(ctx, GRect(
+      UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W + UI_SUNRISE_SUNSET_LOAD_BOX_SPACE_HORIZONTAL + UI_SUNRISE_SUNSET_LOAD_BOX_MIDDLE_W + UI_SUNRISE_SUNSET_LOAD_BOX_SPACE_HORIZONTAL,
+      0,
+      UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W,
+      UI_SUNRISE_SUNSET_H));
+    return;
+  }
+  
+  time_t midnight_today_seconds = get_midnight_today_seconds();
+
+  // TODO - add some special-case handling - what if sunset comes before sunrise some day, or it's all sun, or no sun day.. 
+  // For now, return if sunrise and sunset are not standard...
+  if (!(
+    s_sunrise_seconds
+    && s_sunset_seconds
+    && (s_sunset_seconds > s_sunrise_seconds)
+    && (s_sunrise_seconds > midnight_today_seconds))) {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Non-standard sunrise[%ld] and sunset[%ld] times. Will not display.", s_sunrise_seconds, s_sunset_seconds);
+    // Draw one rectangle without data.
+    graphics_draw_rect(ctx, GRect(
+      0,
+      UI_SUNRISE_SUNSET_BARS_Y,
+      UI_SUNRISE_SUNSET_W,
+      UI_SUNRISE_SUNSET_BARS_H
+    )); // TODO draw at the correct subset of the layer
+    return;
+  }
+
+  // Note: x and y here is relative to the layer, not the entire screen.
+
+  // Convert seconds to minutes, and divide by 15 - since each pixel represents a 15-min interval.
+  int sunrise_x = round((double)((s_sunrise_seconds - midnight_today_seconds) / 60) / 15);
+  int sunset_x = round((double)((s_sunset_seconds - midnight_today_seconds) / 60) / 15);
+
+  // Calculate pre_sun, sun, and post_sun X and Width values.
+  int pre_sun_x = 0;
+  int pre_sun_w = (sunrise_x - UI_SUNRISE_SUNSET_BARS_SPACE_HORIZONTAL); // leave space between pre_sun and sun
+  int sun_w = (sunset_x - sunrise_x);
+  int post_sun_x = (sunset_x + UI_SUNRISE_SUNSET_BARS_SPACE_HORIZONTAL); // leave space between sun and post_sun.
+  int post_sun_w = (UI_SUNRISE_SUNSET_W - post_sun_x);
+
+  // Draw the three rectangles for pre_sun, sun, and post_sun
+  if (pre_sun_w > 0) {
+    graphics_draw_rect(ctx, GRect(pre_sun_x, UI_SUNRISE_SUNSET_BARS_Y, pre_sun_w, UI_SUNRISE_SUNSET_BARS_H));
+  }
+  if (sun_w > 0) {
+    graphics_fill_rect(ctx, GRect(sunrise_x, UI_SUNRISE_SUNSET_BARS_Y, sun_w, UI_SUNRISE_SUNSET_BARS_H), 1, GCornerNone);
+  }
+  if (post_sun_w > 0) {
+    graphics_draw_rect(ctx, GRect(post_sun_x, UI_SUNRISE_SUNSET_BARS_Y, post_sun_w, UI_SUNRISE_SUNSET_BARS_H));
+  }
+
+  // -=-=-=-=-=-=-= Draw the Labels -=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
   struct tm sunrise_time = *localtime((time_t *)&s_sunrise_seconds);
   struct tm sunset_time = *localtime((time_t *)&s_sunset_seconds);
 
@@ -454,73 +524,20 @@ static void layer_sunlight_labels_update_proc(Layer *layer, GContext *ctx) {
   int sunrise_label_w = calculate_string_width_px(sunrise_label, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
   int sunset_label_w = calculate_string_width_px(sunset_label, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
 
-  // Convert seconds to minutes, and divide by 15 - since each pixel represents a 15-min interval.
-  time_t midnight_today_seconds = get_midnight_today_seconds();
-  int sunrise_x = round((double)((s_sunrise_seconds - midnight_today_seconds) / 60) / 15);
-  int sunset_x = round((double)((s_sunset_seconds - midnight_today_seconds) / 60) / 15) - sunset_label_w; // move this left so it sits within the sun area.
+  int sunrise_label_x = sunrise_x;
+  int sunset_label_x = sunset_x - sunset_label_w; // move this left so it sits within the sun area.
 
   // If the labels overlap, move them to the outsides of the sunrise / sunset locations.
-  if (sunset_x >= sunrise_x && sunset_x <= (sunrise_x + sunrise_label_w + UI_SUNLIGHT_LABELS_SEPARATION)) {
-    sunrise_x -= sunrise_label_w;
-    sunset_x += sunset_label_w;
+  if (sunset_label_x >= sunrise_label_x && sunset_label_x <= (sunrise_label_x + sunrise_label_w + UI_SUNLIGHT_LABELS_SEPARATION)) {
+    sunrise_label_x -= sunrise_label_w;
+    sunset_label_x += sunset_label_w;
   }
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Current sunrise/sunset seconds: sunrise[%ld] sunset[%ld]", s_sunrise_seconds, s_sunset_seconds);
   APP_LOG(APP_LOG_LEVEL_DEBUG, "About to draw labels: sunrise:[%s] sunset:[%s]", sunrise_label, sunset_label);
 
-  draw_string(ctx, sunrise_label, sunrise_x, 0, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
-  draw_string(ctx, sunset_label, sunset_x, 0, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
-}
-
-/**
- * @brief Sunrise / Sunset Display: layer_update_proc
- */
-static void layer_sunrise_sunset_update_proc(Layer *layer, GContext *ctx) {
-  GRect bounds = layer_get_bounds(layer);
-
-  // Set the Graphics Context Colors for when its time to draw.
-  graphics_context_set_compositing_mode(ctx, GCompOpAssign);
-  graphics_context_set_stroke_color(ctx, GColorWhite);
-  graphics_context_set_fill_color(ctx, GColorWhite);
-  
-  time_t midnight_today_seconds = get_midnight_today_seconds();
-
-  // TODO - add some special-case handling - what if sunset comes before sunrise some day, or it's all sun, or no sun day.. 
-  // For now, return if sunrise and sunset are not standard...
-  if (!(
-    s_sunrise_seconds
-    && s_sunset_seconds
-    && (s_sunset_seconds > s_sunrise_seconds)
-    && (s_sunrise_seconds > midnight_today_seconds))) {
-    APP_LOG(APP_LOG_LEVEL_ERROR, "Non-standard sunrise[%ld] and sunset[%ld] times. Will not display.", s_sunrise_seconds, s_sunset_seconds);
-    // Draw one rectangle without data.
-    graphics_draw_rect(ctx, bounds);
-    return;
-  }
-
-  // Note: x and y here is relative to the layer, not the entire screen.
-
-  // Convert seconds to minutes, and divide by 15 - since each pixel represents a 15-min interval.
-  int sunrise_x = round((double)((s_sunrise_seconds - midnight_today_seconds) / 60) / 15);
-  int sunset_x = round((double)((s_sunset_seconds - midnight_today_seconds) / 60) / 15);
-
-  // Calculate pre_sun, sun, and post_sun X and Width values.
-  int pre_sun_x = 0;
-  int pre_sun_w = (sunrise_x - UI_SUNRISE_SUNSET_SPACE_HORIZONTAL); // leave space between pre_sun and sun
-  int sun_w = (sunset_x - sunrise_x);
-  int post_sun_x = (sunset_x + UI_SUNRISE_SUNSET_SPACE_HORIZONTAL); // leave space between sun and post_sun.
-  int post_sun_w = (UI_SUNRISE_SUNSET_W - post_sun_x);
-
-  // Draw the three rectangles for pre_sun, sun, and post_sun
-  if (pre_sun_w > 0) {
-    graphics_draw_rect(ctx, GRect(pre_sun_x, 0, pre_sun_w, UI_SUNRISE_SUNSET_H));
-  }
-  if (sun_w > 0) {
-    graphics_fill_rect(ctx, GRect(sunrise_x, 0, sun_w, UI_SUNRISE_SUNSET_H), 1, GCornerNone);
-  }
-  if (post_sun_w > 0) {
-    graphics_draw_rect(ctx, GRect(post_sun_x, 0, post_sun_w, UI_SUNRISE_SUNSET_H));
-  }
+  draw_string(ctx, sunrise_label, sunrise_label_x, 0, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
+  draw_string(ctx, sunset_label, sunset_label_x, 0, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
 }
 
 /**
@@ -907,13 +924,9 @@ static void main_window_load(Window *window) {
   #endif
   layer_add_child(s_container_layer, bitmap_layer_get_layer(s_bitmap_layer_conditions));
   
-  s_layer_sunrise_sunset_bars = layer_create(GRect(UI_SUNRISE_SUNSET_X, UI_SUNRISE_SUNSET_Y, UI_SUNRISE_SUNSET_W, UI_SUNRISE_SUNSET_H));
-  layer_set_update_proc(s_layer_sunrise_sunset_bars, layer_sunrise_sunset_update_proc);
-  layer_add_child(s_container_layer, s_layer_sunrise_sunset_bars);
-  
-  s_layer_sunlight_labels = layer_create(GRect(UI_SUNLIGHT_LABELS_X, UI_SUNLIGHT_LABELS_Y, UI_SUNLIGHT_LABELS_W, UI_SUNLIGHT_LABELS_H));
-  layer_set_update_proc(s_layer_sunlight_labels, layer_sunlight_labels_update_proc);
-  layer_add_child(s_container_layer, s_layer_sunlight_labels);
+  s_layer_sunrise_sunset = layer_create(GRect(UI_SUNRISE_SUNSET_X, UI_SUNRISE_SUNSET_Y, UI_SUNRISE_SUNSET_W, UI_SUNRISE_SUNSET_H));
+  layer_set_update_proc(s_layer_sunrise_sunset, layer_sunrise_sunset_update_proc);
+  layer_add_child(s_container_layer, s_layer_sunrise_sunset);
 }
 
 /**
@@ -938,7 +951,6 @@ static void main_window_unload(Window *window) {
   layer_destroy(s_layer_temp_high);
   layer_destroy(s_layer_temp_current);
   layer_destroy(s_layer_temp_low);
-  layer_destroy(s_layer_sunlight_labels);
 
   array_length = sizeof(s_bitmap_numbers_s_light) / sizeof(*s_bitmap_numbers_s_light);
   for (size_t i = 0; i < array_length; i++) {
@@ -971,7 +983,7 @@ static void main_window_unload(Window *window) {
   }
   bitmap_layer_destroy(s_bitmap_layer_conditions);
 
-  layer_destroy(s_layer_sunrise_sunset_bars);
+  layer_destroy(s_layer_sunrise_sunset);
 
   gbitmap_destroy(s_bitmap_sun_index);
   bitmap_layer_destroy(s_bitmap_layer_sun_index);
@@ -1013,14 +1025,14 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   if (sunrise_tuple) {
     s_sunrise_seconds = (long)sunrise_tuple->value->int32;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received Sunrise[%ld]", s_sunrise_seconds);
-    layer_mark_dirty(s_layer_sunlight_labels);
-    layer_mark_dirty(s_layer_sunrise_sunset_bars);
+    s_sunrise_sunset_loading = false;
+    layer_mark_dirty(s_layer_sunrise_sunset);
   }
   if (sunset_tuple) {
     s_sunset_seconds = (long)sunset_tuple->value->int32;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received Sunset[%ld]", s_sunset_seconds);
-    layer_mark_dirty(s_layer_sunlight_labels);
-    layer_mark_dirty(s_layer_sunrise_sunset_bars);
+    s_sunrise_sunset_loading = false;
+    layer_mark_dirty(s_layer_sunrise_sunset);
   }
   if (conditions_tuple) {
     snprintf(s_condition, sizeof(s_condition), "%s", conditions_tuple->value->cstring);
