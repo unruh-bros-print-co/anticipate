@@ -2,7 +2,21 @@
   "name": "anticipate",
   "author": "Unruh Bros. Print Co.",
   "version": "1.0.2",
-  "keywords": ["pebble-app", "basalt", "diorite", "flint", "emery", "gabbro", "weather", "minimal", "black-and-white", "large display", "sunrise-sunset", "clean", "digital"],
+  "keywords": [
+    "pebble-app",
+    "basalt",
+    "diorite",
+    "flint",
+    "emery",
+    "gabbro",
+    "weather",
+    "minimal",
+    "black-and-white",
+    "large display",
+    "sunrise-sunset",
+    "clean",
+    "digital"
+  ],
   "private": true,
   "dependencies": {},
   "pebble": {
@@ -445,55 +459,46 @@
           "name": "IMAGE_CONDITION_CLEAR_SUN_LIGHT",
           "file": "images/icon-condition-clear-sun-light-v3.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_CLEAR_MOON_LIGHT",
           "file": "images/icon-condition-clear-moon-light.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_PARTLY_CLOUDY_SUN_LIGHT",
           "file": "images/icon-condition-partly-cloudy-sun-light-v4.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_PARTLY_CLOUDY_MOON_LIGHT",
           "file": "images/icon-condition-partly-cloudy-moon-light-v3.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_CLOUDS_LIGHT",
           "file": "images/icon-condition-clouds-light-v3.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_DRIZZLE_LIGHT",
           "file": "images/icon-condition-drizzle-light-v3.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_RAIN_LIGHT",
           "file": "images/icon-condition-rain-light-v3.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_SNOW_LIGHT",
           "file": "images/icon-condition-snow-light-v3.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_THUNDERSTORM_LIGHT",
           "file": "images/icon-condition-thunderstorm-light-v3.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_ATMOSPHERE_LIGHT",
