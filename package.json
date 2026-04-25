@@ -18,7 +18,9 @@
     "digital"
   ],
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "@rebble/clay": "^1.0.8"
+  },
   "pebble": {
     "displayName": "Anticipate",
     "uuid": "46eacbb9-5efc-439b-8889-942b365a591b",
@@ -36,7 +38,8 @@
     },
     "capabilities": [
       "health",
-      "location"
+      "location",
+      "configurable"
     ],
     "messageKeys": [
       "TEMP_HI",
@@ -44,7 +47,9 @@
       "TEMP_LO",
       "CONDITIONS",
       "SUNRISE",
-      "SUNSET"
+      "SUNSET",
+      "REQUEST_WEATHER",
+      "TemperatureUnit"
     ],
     "resources": {
       "media": [

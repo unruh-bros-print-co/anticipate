@@ -2,6 +2,30 @@
 #include <math.h>
 #include "bitmap_info.h"
 
+// Settings
+#define SETTINGS_KEY 1
+
+typedef struct {
+    bool TemperatureUnit; // false Celsius, true = Fahrenheit
+} ClaySettings;
+
+static ClaySettings settings;
+
+static void prv_default_settings() {
+  settings.TemperatureUnit = false;
+}
+
+static void prv_save_settings() {
+  persist_write_data(SETTINGS_KEY, &settings, sizeof(settings));
+}
+
+static void prv_load_settings() {
+  prv_default_settings();
+  persist_read_data(SETTINGS_KEY, &settings, sizeof(settings));
+}
+
+// Define constants
+
 // (L)arge number placement & dimensions
 static const uint16_t L_TENS_X = 44;
 static const uint16_t L_TENS_X_OFFSET = 17;
@@ -722,7 +746,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
     app_message_outbox_begin(&iter);
 
     // Add a key-value pair
-    dict_write_uint8(iter, 0, 0);
+    dict_write_uint8(iter, MESSAGE_KEY_REQUEST_WEATHER, 1);
 
     // Send the message!
     app_message_outbox_send(); // This requests the latest weather and daylight
@@ -734,6 +758,14 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
     || (epoch_seconds >= s_sunset_seconds && epoch_seconds <= (s_sunset_seconds + 120))) {
       update_conditions();
   }
+}
+
+/**
+ * @brief Function to update UI based on settings
+ */
+static void prv_update_display() {
+  // 1. show or hide layers, and set colors here - based on 'settings' variable.
+  // 2. mark any layers dirty that need to be redrawn using settings colors etc.
 }
 
 /**
@@ -943,6 +975,8 @@ static void main_window_load(Window *window) {
   s_layer_sunrise_sunset = layer_create(GRect(UI_SUNRISE_SUNSET_X, UI_SUNRISE_SUNSET_Y, UI_SUNRISE_SUNSET_W, UI_SUNRISE_SUNSET_H));
   layer_set_update_proc(s_layer_sunrise_sunset, layer_sunrise_sunset_update_proc);
   layer_add_child(s_container_layer, s_layer_sunrise_sunset);
+
+  prv_update_display(); // Update any layers that will be effected by settings.
 }
 
 /**
@@ -1016,6 +1050,8 @@ static void main_window_unload(Window *window) {
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Inbox received message!");
 
+  // Check for weather data
+
   Tuple *temp_hi_tuple = dict_find(iterator, MESSAGE_KEY_TEMP_HI);
   Tuple *temp_cur_tuple = dict_find(iterator, MESSAGE_KEY_TEMP_CUR);
   Tuple *temp_lo_tuple = dict_find(iterator, MESSAGE_KEY_TEMP_LO);
@@ -1025,16 +1061,25 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 
   if (temp_hi_tuple) {
     s_temp_high = (int)temp_hi_tuple->value->int32;
+    if (settings.TemperatureUnit) {
+      s_temp_high = (s_temp_high * 9) / 5 + 32;
+    }
     s_temp_high_loading = false;
     layer_mark_dirty(s_layer_temp_high);
   }
   if (temp_cur_tuple) {
     s_temp_current = (int)temp_cur_tuple->value->int32;
+    if (settings.TemperatureUnit) {
+      s_temp_current = (s_temp_current * 9) / 5 + 32;
+    }
     s_temp_current_loading = false;
     layer_mark_dirty(s_layer_temp_current);
   }
   if (temp_lo_tuple) {
     s_temp_low = (int)temp_lo_tuple->value->int32;
+    if (settings.TemperatureUnit) {
+      s_temp_low = (s_temp_low * 9) / 5 + 32;
+    }
     s_temp_low_loading = false;
     layer_mark_dirty(s_layer_temp_low);
   }
@@ -1054,6 +1099,27 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     snprintf(s_condition, sizeof(s_condition), "%s", conditions_tuple->value->cstring);
     APP_LOG(APP_LOG_LEVEL_INFO, "RECEIVED CONDITION: %s", s_condition);
     update_conditions();
+  }
+
+  // Check for Clay Settings
+
+  Tuple *temp_unit_t = dict_find(iterator, MESSAGE_KEY_TemperatureUnit);
+  if (temp_unit_t) {
+    settings.TemperatureUnit = temp_unit_t->value->int32 == 1;
+  }
+
+  // Save and apply settings if any were changed
+  if (temp_unit_t) { // if any Clay Settings dicts were found (add additional settings to this if-statement)
+    prv_save_settings();
+    prv_update_display();
+
+    // Refetch the weather if the temperature unit changed
+    if (temp_unit_t) {
+      DictionaryIterator *iter;
+      app_message_outbox_begin(&iter);
+      dict_write_uint8(iter, MESSAGE_KEY_REQUEST_WEATHER, 1);
+      app_message_outbox_send();
+    }
   }
 }
 
@@ -1082,6 +1148,8 @@ static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
  * @brief Function to initialize the application
  */
 static void init() {
+  prv_load_settings();
+
   s_main_window = window_create();
 
   window_set_window_handlers(s_main_window, (WindowHandlers) {
@@ -1105,8 +1173,8 @@ static void init() {
   app_message_register_outbox_failed(outbox_failed_callback);
   app_message_register_outbox_sent(outbox_sent_callback);
   // Open AppMessage
-  const int inbox_size = 128;
-  const int outbox_size = 128;
+  const int inbox_size = 256;
+  const int outbox_size = 256;
   app_message_open(inbox_size, outbox_size);
 
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
