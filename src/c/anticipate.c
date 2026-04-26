@@ -6,13 +6,13 @@
 #define SETTINGS_KEY 1
 
 typedef struct {
-    bool TemperatureUnit; // false Celsius, true = Fahrenheit
+    char TemperatureUnit[4];
 } ClaySettings;
 
 static ClaySettings settings;
 
 static void prv_default_settings() {
-  settings.TemperatureUnit = false;
+  strncpy(settings.TemperatureUnit, "C", sizeof(settings.TemperatureUnit));
 }
 
 static void prv_save_settings() {
@@ -174,11 +174,11 @@ static BitmapLayer *s_bitmap_layer_conditions;
 static struct tm s_current_time;
 static int s_current_steps = 0;
 static bool s_temp_high_loading = true;
-static int s_temp_high = 0;
+static int s_temp_high_c = 0;
 static bool s_temp_current_loading = true;
-static int s_temp_current = 0;
+static int s_temp_current_c = 0;
 static bool s_temp_low_loading = true;
-static int s_temp_low = 0;
+static int s_temp_low_c = 0;
 static bool s_sunrise_sunset_loading = true;
 static long s_sunrise_seconds = 0;
 static long s_sunset_seconds = 0;
@@ -357,7 +357,14 @@ static void layer_temp_high_update_proc(Layer *layer, GContext *ctx) {
     strcpy(temp_high_str, "--*");
   }
   else {
-    snprintf(temp_high_str, sizeof(temp_high_str), "%d*", s_temp_high);
+    int s_temp_high_display;
+    if (strcmp(settings.TemperatureUnit, "F") == 0) {
+      s_temp_high_display = (s_temp_high_c * 9) / 5 + 32;
+    }
+    else {
+      s_temp_high_display = s_temp_high_c;
+    }
+    snprintf(temp_high_str, sizeof(temp_high_str), "%d*", s_temp_high_display);
   }
 
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
@@ -383,7 +390,14 @@ static void layer_temp_current_update_proc(Layer *layer, GContext *ctx) {
     strcpy(temp_current_str, "--*");
   }
   else {
-    snprintf(temp_current_str, sizeof(temp_current_str), "%d*", s_temp_current);
+    int s_temp_current_display;
+    if (strcmp(settings.TemperatureUnit, "F") == 0) {
+      s_temp_current_display = (s_temp_current_c * 9) / 5 + 32;
+    }
+    else {
+      s_temp_current_display = s_temp_current_c;
+    }
+    snprintf(temp_current_str, sizeof(temp_current_str), "%d*", s_temp_current_display);
   }
 
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
@@ -409,7 +423,14 @@ static void layer_temp_low_update_proc(Layer *layer, GContext *ctx) {
     strcpy(temp_low_str, "--*");
   }
   else {
-    snprintf(temp_low_str, sizeof(temp_low_str), "%d*", s_temp_low);
+    int s_temp_low_display;
+    if (strcmp(settings.TemperatureUnit, "F") == 0) {
+      s_temp_low_display = (s_temp_low_c * 9) / 5 + 32;
+    }
+    else {
+      s_temp_low_display = s_temp_low_c;
+    }
+    snprintf(temp_low_str, sizeof(temp_low_str), "%d*", s_temp_low_display);
   }
 
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
@@ -766,6 +787,9 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 static void prv_update_display() {
   // 1. show or hide layers, and set colors here - based on 'settings' variable.
   // 2. mark any layers dirty that need to be redrawn using settings colors etc.
+  layer_mark_dirty(s_layer_temp_high);
+  layer_mark_dirty(s_layer_temp_current);
+  layer_mark_dirty(s_layer_temp_low);
 }
 
 /**
@@ -1060,26 +1084,17 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   Tuple *sunset_tuple = dict_find(iterator, MESSAGE_KEY_SUNSET);
 
   if (temp_hi_tuple) {
-    s_temp_high = (int)temp_hi_tuple->value->int32;
-    if (settings.TemperatureUnit) {
-      s_temp_high = (s_temp_high * 9) / 5 + 32;
-    }
+    s_temp_high_c = (int)temp_hi_tuple->value->int32;
     s_temp_high_loading = false;
     layer_mark_dirty(s_layer_temp_high);
   }
   if (temp_cur_tuple) {
-    s_temp_current = (int)temp_cur_tuple->value->int32;
-    if (settings.TemperatureUnit) {
-      s_temp_current = (s_temp_current * 9) / 5 + 32;
-    }
+    s_temp_current_c = (int)temp_cur_tuple->value->int32;
     s_temp_current_loading = false;
     layer_mark_dirty(s_layer_temp_current);
   }
   if (temp_lo_tuple) {
-    s_temp_low = (int)temp_lo_tuple->value->int32;
-    if (settings.TemperatureUnit) {
-      s_temp_low = (s_temp_low * 9) / 5 + 32;
-    }
+    s_temp_low_c = (int)temp_lo_tuple->value->int32;
     s_temp_low_loading = false;
     layer_mark_dirty(s_layer_temp_low);
   }
@@ -1105,7 +1120,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 
   Tuple *temp_unit_t = dict_find(iterator, MESSAGE_KEY_TemperatureUnit);
   if (temp_unit_t) {
-    settings.TemperatureUnit = temp_unit_t->value->int32 == 1;
+    strncpy(settings.TemperatureUnit, temp_unit_t->value->cstring, sizeof(settings.TemperatureUnit));
   }
 
   // Save and apply settings if any were changed

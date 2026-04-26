@@ -1,21 +1,25 @@
 module.exports = [
     {
         "type": "heading",
-        "defaultValue": "Anticipate Settings"
+        "defaultValue": "Anticipate"
     },
     {
         "type": "section",
         "items": [
             {
                 "type": "heading",
-                "defaultValue": "Units"
+                "defaultValue": "Display"
             },
             {
-                "type": "toggle",
+                "type": "select",
                 "messageKey": "TemperatureUnit",
-                "label": "Use Fahrenheit (°F)",
-                "defaultValue": false
-            }
+                "label": "Temperature Unit",
+                "options": [
+                    { "label": "Celsius (°C)", "value": "C" },
+                    { "label": "Fahrenheit (°F)", "value": "F" }
+                ],
+                "defaultValue": "C"
+            },
         ]
     },
     {
