@@ -8,6 +8,7 @@
 typedef struct {
     char TemperatureUnit[4];
     char DateFormat[8];
+    bool LeadingZero;
 } ClaySettings;
 
 static ClaySettings settings;
@@ -15,6 +16,7 @@ static ClaySettings settings;
 static void prv_default_settings() {
   strncpy(settings.TemperatureUnit, "C", sizeof(settings.TemperatureUnit));
   strncpy(settings.DateFormat, "%d-%m", sizeof(settings.DateFormat));
+  settings.LeadingZero = false;
 }
 
 static void prv_save_settings() {
@@ -623,7 +625,7 @@ static void update_time(struct tm *tick_time) {
   int h_ones = display_hour % 10;
 
   bitmap_layer_set_bitmap(s_bitmap_layer_time_h2, s_bitmap_numbers_lg[h_ones]);
-  if (!clock_is_24h_style() && h_tens == 0) {
+  if (h_tens == 0 && !clock_is_24h_style() && !settings.LeadingZero) {
     bitmap_layer_set_bitmap(s_bitmap_layer_time_h1, NULL);
     bitmap_layer_set_bitmap(s_bitmap_layer_time_h1_offset, NULL);
   }
@@ -789,6 +791,9 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 static void prv_update_display() {
   // 1. show or hide layers, and set colors here - based on 'settings' variable.
   // 2. mark any layers dirty that need to be redrawn using settings colors etc.
+  time_t temp = time(NULL);
+  struct tm *tick_time = localtime(&temp);
+  update_time(tick_time);
   layer_mark_dirty(s_layer_date);
   layer_mark_dirty(s_layer_temp_high);
   layer_mark_dirty(s_layer_temp_current);
@@ -1129,9 +1134,13 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   if (date_format_t) {
     strncpy(settings.DateFormat, date_format_t->value->cstring, sizeof(settings.DateFormat));    
   }
+  Tuple *leading_zero_t = dict_find(iterator, MESSAGE_KEY_LeadingZero);
+  if (leading_zero_t) {
+    settings.LeadingZero = (leading_zero_t->value->int32 == 1);
+  }
 
   // Save and apply settings if any were changed
-  if (temp_unit_t) { // if any Clay Settings dicts were found (add additional settings to this if-statement)
+  if (temp_unit_t || date_format_t || leading_zero_t) { // if any Clay Settings dicts were found (add additional settings to this if-statement)
     prv_save_settings();
     prv_update_display();
 
