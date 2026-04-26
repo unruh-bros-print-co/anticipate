@@ -7,12 +7,14 @@
 
 typedef struct {
     char TemperatureUnit[4];
+    char DateFormat[8];
 } ClaySettings;
 
 static ClaySettings settings;
 
 static void prv_default_settings() {
   strncpy(settings.TemperatureUnit, "C", sizeof(settings.TemperatureUnit));
+  strncpy(settings.DateFormat, "%d-%m", sizeof(settings.DateFormat));
 }
 
 static void prv_save_settings() {
@@ -316,8 +318,8 @@ static bool is_night() {
  */
 static void layer_date_update_proc(Layer *layer, GContext *ctx) {
   
-  static char date_str[] = "MM-DD";
-  strftime(date_str, sizeof(date_str), "%m-%d", &s_current_time);
+  static char date_str[] = "xx-xx";
+  strftime(date_str, sizeof(date_str), settings.DateFormat, &s_current_time);
   
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
   GRect bounds = layer_get_bounds(layer);
@@ -787,6 +789,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 static void prv_update_display() {
   // 1. show or hide layers, and set colors here - based on 'settings' variable.
   // 2. mark any layers dirty that need to be redrawn using settings colors etc.
+  layer_mark_dirty(s_layer_date);
   layer_mark_dirty(s_layer_temp_high);
   layer_mark_dirty(s_layer_temp_current);
   layer_mark_dirty(s_layer_temp_low);
@@ -1121,6 +1124,10 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   Tuple *temp_unit_t = dict_find(iterator, MESSAGE_KEY_TemperatureUnit);
   if (temp_unit_t) {
     strncpy(settings.TemperatureUnit, temp_unit_t->value->cstring, sizeof(settings.TemperatureUnit));
+  }
+  Tuple *date_format_t = dict_find(iterator, MESSAGE_KEY_DateFormat);
+  if (date_format_t) {
+    strncpy(settings.DateFormat, date_format_t->value->cstring, sizeof(settings.DateFormat));    
   }
 
   // Save and apply settings if any were changed

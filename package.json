@@ -49,7 +49,8 @@
       "SUNRISE",
       "SUNSET",
       "REQUEST_WEATHER",
-      "TemperatureUnit"
+      "TemperatureUnit",
+      "DateFormat"
     ],
     "resources": {
       "media": [
