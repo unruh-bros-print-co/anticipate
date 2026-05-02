@@ -34,7 +34,7 @@ module.exports = [
                 "type": "toggle",
                 "messageKey": "LeadingZero",
                 "label": "Show leading zero on 12-hr time",
-                "defaultValue": false
+                "defaultValue": true
             }
         ]
     },

@@ -16,7 +16,7 @@ static ClaySettings settings;
 static void prv_default_settings() {
   strncpy(settings.TemperatureUnit, "C", sizeof(settings.TemperatureUnit));
   strncpy(settings.DateFormat, "%d-%m", sizeof(settings.DateFormat));
-  settings.LeadingZero = false;
+  settings.LeadingZero = true;
 }
 
 static void prv_save_settings() {
