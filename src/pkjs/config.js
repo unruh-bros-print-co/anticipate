@@ -33,8 +33,14 @@ module.exports = [
             {
                 "type": "toggle",
                 "messageKey": "LeadingZero",
-                "label": "Show leading zero on 12-hr time",
+                "label": "Leading zero in 12-hr format (current time)",
                 "defaultValue": true
+            },
+            {
+                "type": "toggle",
+                "messageKey": "LeadingZeroXXS",
+                "label": "Leading zero in 12-hr format (sunset/sunrise times)",
+                "defaultValue": false
             }
         ]
     },

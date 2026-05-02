@@ -9,6 +9,7 @@ typedef struct {
     char TemperatureUnit[4];
     char DateFormat[8];
     bool LeadingZero;
+    bool LeadingZeroXXS;
 } ClaySettings;
 
 static ClaySettings settings;
@@ -17,6 +18,7 @@ static void prv_default_settings() {
   strncpy(settings.TemperatureUnit, "C", sizeof(settings.TemperatureUnit));
   strncpy(settings.DateFormat, "%d-%m", sizeof(settings.DateFormat));
   settings.LeadingZero = true;
+  settings.LeadingZeroXXS = false;
 }
 
 static void prv_save_settings() {
@@ -555,11 +557,12 @@ static void layer_sunrise_sunset_update_proc(Layer *layer, GContext *ctx) {
     else if (sunrise_hour == 0) {
       sunrise_hour = 12;
     }
-    // TODO - check if user wants leading zero on 12-hr format or not.
-    snprintf(sunrise_label, sizeof(sunrise_label), "%d:%02d", sunrise_hour, sunrise_min);
+  }
+  if (is_24h_style || settings.LeadingZeroXXS) {
+    snprintf(sunrise_label, sizeof(sunrise_label), "%02d:%02d", sunrise_hour, sunrise_min);
   }
   else {
-    snprintf(sunrise_label, sizeof(sunrise_label), "%02d:%02d", sunrise_hour, sunrise_min);
+    snprintf(sunrise_label, sizeof(sunrise_label), "%d:%02d", sunrise_hour, sunrise_min);
   }
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Sunrise Label:[%s]", sunrise_label);
@@ -576,11 +579,12 @@ static void layer_sunrise_sunset_update_proc(Layer *layer, GContext *ctx) {
     else if (sunset_hour == 0) {
       sunset_hour = 12;
     }
-    // TODO - check if user wants leading zero on 12-hr format or not.
-    snprintf(sunset_label, sizeof(sunset_label), "%d:%02d", sunset_hour, sunset_min);
+  }
+  if (is_24h_style || settings.LeadingZeroXXS) {
+    snprintf(sunset_label, sizeof(sunset_label), "%02d:%02d", sunset_hour, sunset_min);
   }
   else {
-    snprintf(sunset_label, sizeof(sunset_label), "%02d:%02d", sunset_hour, sunset_min);
+    snprintf(sunset_label, sizeof(sunset_label), "%d:%02d", sunset_hour, sunset_min);
   }
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Sunset Label:[%s]", sunset_label);
@@ -798,6 +802,7 @@ static void prv_update_display() {
   layer_mark_dirty(s_layer_temp_high);
   layer_mark_dirty(s_layer_temp_current);
   layer_mark_dirty(s_layer_temp_low);
+  layer_mark_dirty(s_layer_sunrise_sunset);
 }
 
 /**
@@ -1138,9 +1143,13 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   if (leading_zero_t) {
     settings.LeadingZero = (leading_zero_t->value->int32 == 1);
   }
+  Tuple *leading_zero_xxs_t = dict_find(iterator, MESSAGE_KEY_LeadingZeroXXS);
+  if (leading_zero_xxs_t) {
+    settings.LeadingZeroXXS = (leading_zero_xxs_t->value->int32 == 1);
+  }
 
   // Save and apply settings if any were changed
-  if (temp_unit_t || date_format_t || leading_zero_t) { // if any Clay Settings dicts were found (add additional settings to this if-statement)
+  if (temp_unit_t || date_format_t || leading_zero_t || leading_zero_xxs_t) { // if any Clay Settings dicts were found (add additional settings to this if-statement)
     prv_save_settings();
     prv_update_display();
 

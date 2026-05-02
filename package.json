@@ -51,7 +51,8 @@
       "REQUEST_WEATHER",
       "TemperatureUnit",
       "DateFormat",
-      "LeadingZero"
+      "LeadingZero",
+      "LeadingZeroXXS"
     ],
     "resources": {
       "media": [
