@@ -8,7 +8,7 @@ module.exports = [
         "items": [
             {
                 "type": "heading",
-                "defaultValue": "Display"
+                "defaultValue": "Date"
             },
             {
                 "type": "select",
@@ -19,6 +19,30 @@ module.exports = [
                     { "label": "Month-Day (MM-DD)", "value": "%m-%d" }
                 ],
                 "defaultValue": "%d-%m"
+            }
+        ]
+    },
+    {
+        "type": "section",
+        "items": [
+            {
+                "type": "heading",
+                "defaultValue": "Time"
+            },
+            {
+                "type": "toggle",
+                "messageKey": "LeadingZero",
+                "label": "Use leading zero in 12h time format",
+                "defaultValue": true
+            }
+        ]
+    },
+    {
+        "type": "section",
+        "items": [
+            {
+                "type": "heading",
+                "defaultValue": "Weather"
             },
             {
                 "type": "select",
@@ -29,18 +53,21 @@ module.exports = [
                     { "label": "Fahrenheit (°F)", "value": "F" }
                 ],
                 "defaultValue": "C"
-            },
+            }
+        ]
+    },
+    {
+        "type": "section",
+        "items": [
             {
-                "type": "toggle",
-                "messageKey": "LeadingZero",
-                "label": "Leading zero in 12-hr format (current time)",
-                "defaultValue": true
+                "type": "heading",
+                "defaultValue": "Sunrise and Sunset"
             },
             {
                 "type": "toggle",
                 "messageKey": "LeadingZeroXXS",
-                "label": "Leading zero in 12-hr format (sunset/sunrise times)",
-                "defaultValue": false
+                "label": "Use leading zero in 12h time format",
+                "defaultValue": true
             }
         ]
     },

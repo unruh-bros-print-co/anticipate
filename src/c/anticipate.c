@@ -15,10 +15,10 @@ typedef struct {
 static ClaySettings settings;
 
 static void prv_default_settings() {
-  strncpy(settings.TemperatureUnit, "C", sizeof(settings.TemperatureUnit));
   strncpy(settings.DateFormat, "%d-%m", sizeof(settings.DateFormat));
+  strncpy(settings.TemperatureUnit, "C", sizeof(settings.TemperatureUnit));
   settings.LeadingZero = true;
-  settings.LeadingZeroXXS = false;
+  settings.LeadingZeroXXS = true;
 }
 
 static void prv_save_settings() {
