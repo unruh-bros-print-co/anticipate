@@ -34,6 +34,22 @@ module.exports = [
                 "messageKey": "LeadingZero",
                 "label": "Use leading zero in 12h time format",
                 "defaultValue": true
+            },
+            {
+                "type": "select",
+                "messageKey": "DisplaySecondsInterval",
+                "label": "Display seconds",
+                "options": [
+                    { "label": "Off", "value": "0" },
+                    { "label": "Always on", "value": "1" },
+                    { "label": "5s on motion", "value": "5" },
+                    { "label": "10s on motion", "value": "10" },
+                    { "label": "15s on motion", "value": "15" },
+                    { "label": "30s on motion", "value": "30" },
+                    { "label": "45s on motion", "value": "45" },
+                    { "label": "1 min on motion", "value": "60" }
+                ],
+                "defaultValue": "0"
             }
         ]
     },
