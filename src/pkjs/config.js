@@ -53,6 +53,21 @@ module.exports = [
                     { "label": "Fahrenheit (°F)", "value": "F" }
                 ],
                 "defaultValue": "C"
+            },
+            {
+                "type": "select",
+                "messageKey": "WeatherUpdateInterval",
+                "label": "Update weather data every",
+                "options": [
+                    { "label": "1 min", "value": "1" },
+                    { "label": "5 min", "value": "5" },
+                    { "label": "10 min", "value": "10" },
+                    { "label": "15 min", "value": "15" },
+                    { "label": "30 min", "value": "30" },
+                    { "label": "45 min", "value": "45" },
+                    { "label": "1 hour", "value": "60" }
+                ],
+                "defaultValue": "30"
             }
         ]
     },

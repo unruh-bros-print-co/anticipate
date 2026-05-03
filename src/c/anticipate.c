@@ -4,12 +4,14 @@
 
 // Settings
 #define SETTINGS_KEY 1
+#define DEFAULT_WEATHER_UPDATE_INTERVAL 30
 
 typedef struct {
     char TemperatureUnit[4];
     char DateFormat[8];
     bool LeadingZero;
     bool LeadingZeroXXS;
+    int WeatherUpdateInterval;
 } ClaySettings;
 
 static ClaySettings settings;
@@ -19,6 +21,7 @@ static void prv_default_settings() {
   strncpy(settings.TemperatureUnit, "C", sizeof(settings.TemperatureUnit));
   settings.LeadingZero = true;
   settings.LeadingZeroXXS = true;
+  settings.WeatherUpdateInterval = DEFAULT_WEATHER_UPDATE_INTERVAL;
 }
 
 static void prv_save_settings() {
@@ -767,18 +770,22 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   time_t midnight_today_seconds = get_midnight_today_seconds();
   time_t current_seconds = mktime(tick_time);
 
-  // Request weather info every 30 minutes, or within 2 minutes after midnight
-  if (tick_time->tm_min %30 == 0 || (current_seconds >= midnight_today_seconds && current_seconds <= (midnight_today_seconds + 120))) {
-  // if (tick_time->tm_min %1 == 0) {
-    // Begin dictionary
-    DictionaryIterator *iter;
-    app_message_outbox_begin(&iter);
+  // Only run this logic on MINUTE change
+  if (units_changed & MINUTE_UNIT) {
+    // Request weather info at chosen interval, or within 2 minutes after midnight
+    if ((settings.WeatherUpdateInterval > 0 && tick_time->tm_min % settings.WeatherUpdateInterval == 0) || (current_seconds >= midnight_today_seconds && current_seconds <= (midnight_today_seconds + 120))) {
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Sending weather update request at [%d] minute mark!", settings.WeatherUpdateInterval);
 
-    // Add a key-value pair
-    dict_write_uint8(iter, MESSAGE_KEY_REQUEST_WEATHER, 1);
+      // Begin dictionary
+      DictionaryIterator *iter;
+      app_message_outbox_begin(&iter);
 
-    // Send the message!
-    app_message_outbox_send(); // This requests the latest weather and daylight
+      // Add a key-value pair
+      dict_write_uint8(iter, MESSAGE_KEY_REQUEST_WEATHER, 1);
+
+      // Send the message!
+      app_message_outbox_send(); // This requests the latest weather and daylight
+    }
   }
 
   // If it's within 2 minutes after sunrise or sunset, call update_conditions() to transition sun/moon icons.
@@ -1147,9 +1154,17 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   if (leading_zero_xxs_t) {
     settings.LeadingZeroXXS = (leading_zero_xxs_t->value->int32 == 1);
   }
+  Tuple *weather_update_interval_t = dict_find(iterator, MESSAGE_KEY_WeatherUpdateInterval);
+  if (weather_update_interval_t) {
+    settings.WeatherUpdateInterval = atoi(weather_update_interval_t->value->cstring);
+  }
+  // Safety: Prevent division by zero if the string was empty/invalid
+  if (settings.WeatherUpdateInterval <= 0) {
+    settings.WeatherUpdateInterval = DEFAULT_WEATHER_UPDATE_INTERVAL;
+  }
 
   // Save and apply settings if any were changed
-  if (temp_unit_t || date_format_t || leading_zero_t || leading_zero_xxs_t) { // if any Clay Settings dicts were found (add additional settings to this if-statement)
+  if (temp_unit_t || date_format_t || leading_zero_t || leading_zero_xxs_t || weather_update_interval_t) { // if any Clay Settings dicts were found (add additional settings to this if-statement)
     prv_save_settings();
     prv_update_display();
 

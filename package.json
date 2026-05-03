@@ -52,7 +52,8 @@
       "TemperatureUnit",
       "DateFormat",
       "LeadingZero",
-      "LeadingZeroXXS"
+      "LeadingZeroXXS",
+      "WeatherUpdateInterval"
     ],
     "resources": {
       "media": [
