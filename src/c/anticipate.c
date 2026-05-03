@@ -6,12 +6,15 @@
 #define SETTINGS_KEY 1
 #define DEFAULT_WEATHER_UPDATE_INTERVAL 30
 
+static bool s_is_accel_subscribed = false;
+
 typedef struct {
     char TemperatureUnit[4];
     char DateFormat[8];
     bool LeadingZero;
     bool LeadingZeroXXS;
     int WeatherUpdateInterval;
+    bool WeatherUpdateOnMotion;
 } ClaySettings;
 
 static ClaySettings settings;
@@ -22,6 +25,7 @@ static void prv_default_settings() {
   settings.LeadingZero = true;
   settings.LeadingZeroXXS = true;
   settings.WeatherUpdateInterval = DEFAULT_WEATHER_UPDATE_INTERVAL;
+  settings.WeatherUpdateOnMotion = false;
 }
 
 static void prv_save_settings() {
@@ -757,6 +761,23 @@ static void update_conditions() {
 }
 
 /**
+ * @brief Helper function to request weather data.
+ */
+static void request_weather() {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Sending REQUEST_WEATHER message...", settings.WeatherUpdateInterval);
+
+  // Begin dictionary
+  DictionaryIterator *iter;
+  app_message_outbox_begin(&iter);
+
+  // Add a key-value pair
+  dict_write_uint8(iter, MESSAGE_KEY_REQUEST_WEATHER, 1);
+
+  // Send the message!
+  app_message_outbox_send(); // This requests the latest weather and daylight
+}
+
+/**
  * @brief Handler function for when a 'tick' event occurs.
  */
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
@@ -774,17 +795,8 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   if (units_changed & MINUTE_UNIT) {
     // Request weather info at chosen interval, or within 2 minutes after midnight
     if ((settings.WeatherUpdateInterval > 0 && tick_time->tm_min % settings.WeatherUpdateInterval == 0) || (current_seconds >= midnight_today_seconds && current_seconds <= (midnight_today_seconds + 120))) {
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "Sending weather update request at [%d] minute mark!", settings.WeatherUpdateInterval);
-
-      // Begin dictionary
-      DictionaryIterator *iter;
-      app_message_outbox_begin(&iter);
-
-      // Add a key-value pair
-      dict_write_uint8(iter, MESSAGE_KEY_REQUEST_WEATHER, 1);
-
-      // Send the message!
-      app_message_outbox_send(); // This requests the latest weather and daylight
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Weather update interval triggered at [%d] minute mark!", settings.WeatherUpdateInterval);
+      request_weather();
     }
   }
 
@@ -810,6 +822,44 @@ static void prv_update_display() {
   layer_mark_dirty(s_layer_temp_current);
   layer_mark_dirty(s_layer_temp_low);
   layer_mark_dirty(s_layer_sunrise_sunset);
+}
+
+/**
+ * @brief Function to handle "watch shake / tap" events
+ */
+static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Shake detected!");
+
+    time_t now = time(NULL);
+    static time_t last_tap_event_time = 0;
+
+    // Only allow taps at defined interval to prevent too many events firing
+    if (now - last_tap_event_time > 1) {
+      last_tap_event_time = now;
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Shake occurred after delay interval - Shake handler firing!");
+
+      vibes_short_pulse(); // Vibrate to acknowledge shake/tap event
+
+      request_weather();
+    }
+}
+
+/**
+ * @brief Function to sync accelerometer subscriptions based on settings
+ */
+static void update_motion_subscriptions() {
+  if (settings.WeatherUpdateOnMotion && !s_is_accel_subscribed) {
+    accel_tap_service_subscribe(accel_tap_handler);
+    s_is_accel_subscribed = true;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Accel subscribed");
+  }
+
+  // If all the shake settings are turned off (check them all in this if-statement), and the accelerometer handler is subscribed, unsubscribe it.
+  if (!settings.WeatherUpdateOnMotion && s_is_accel_subscribed) {
+    accel_tap_service_unsubscribe();
+    s_is_accel_subscribed = false;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Accel unsubscribed");
+  }
 }
 
 /**
@@ -1162,19 +1212,27 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   if (settings.WeatherUpdateInterval <= 0) {
     settings.WeatherUpdateInterval = DEFAULT_WEATHER_UPDATE_INTERVAL;
   }
+  Tuple *weather_update_on_motion_t = dict_find(iterator, MESSAGE_KEY_WeatherUpdateOnMotion);
+  if (weather_update_on_motion_t) {
+    settings.WeatherUpdateOnMotion = (weather_update_on_motion_t->value->int32 == 1);
+  }
 
-  // Save and apply settings if any were changed
-  if (temp_unit_t || date_format_t || leading_zero_t || leading_zero_xxs_t || weather_update_interval_t) { // if any Clay Settings dicts were found (add additional settings to this if-statement)
+  // Save and apply display-related settings if any were changed
+  // if any Clay Settings dicts were found (add additional display-related settings to this if-statement)
+  if (temp_unit_t || date_format_t || leading_zero_t || leading_zero_xxs_t) {
     prv_save_settings();
     prv_update_display();
 
     // Refetch the weather if the temperature unit changed
     if (temp_unit_t) {
-      DictionaryIterator *iter;
-      app_message_outbox_begin(&iter);
-      dict_write_uint8(iter, MESSAGE_KEY_REQUEST_WEATHER, 1);
-      app_message_outbox_send();
+      request_weather();
     }
+  }
+
+  // Save and apply any service-related settings if any were changed
+  if (weather_update_interval_t || weather_update_on_motion_t) {
+    prv_save_settings();
+    update_motion_subscriptions();
   }
 }
 
@@ -1232,6 +1290,8 @@ static void init() {
   const int outbox_size = 256;
   app_message_open(inbox_size, outbox_size);
 
+  update_motion_subscriptions();
+
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
   tick_handler(tick_time, MINUTE_UNIT);
 }
@@ -1240,6 +1300,8 @@ static void init() {
  * @brief Function to de-initializes the application
  */
 static void deinit() {
+  tick_timer_service_unsubscribe();
+  accel_tap_service_unsubscribe();
   window_destroy(s_main_window);
 }
 

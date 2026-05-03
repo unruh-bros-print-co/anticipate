@@ -68,6 +68,12 @@ module.exports = [
                     { "label": "1 hour", "value": "60" }
                 ],
                 "defaultValue": "30"
+            },
+            {
+                "type": "toggle",
+                "messageKey": "WeatherUpdateOnMotion",
+                "label": "Update weather data on motion",
+                "defaultValue": false
             }
         ]
     },

@@ -53,7 +53,8 @@
       "DateFormat",
       "LeadingZero",
       "LeadingZeroXXS",
-      "WeatherUpdateInterval"
+      "WeatherUpdateInterval",
+      "WeatherUpdateOnMotion"
     ],
     "resources": {
       "media": [
