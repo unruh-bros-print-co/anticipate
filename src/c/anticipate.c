@@ -10,6 +10,7 @@
 static bool s_is_accel_subscribed = false;
 static AppTimer *s_seconds_timer = NULL;
 static bool s_seconds_within_display_interval = false;
+static int last_drawn_minute = -1;
 
 typedef struct {
     char TemperatureUnit[4];
@@ -366,13 +367,17 @@ static void layer_seconds_update_proc(Layer *layer, GContext *ctx) {
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "About to draw seconds:[%s]", seconds_str);
+
+  int seconds_width = calculate_string_width_px(seconds_str, s_bitmap_numbers_s_dark, UI_SECONDS_SPACING);
+
+  int starting_x = (layer_get_bounds(layer).size.w - seconds_width); // align-right
   
-  if (s_current_time.tm_sec != 7) {
-    draw_string(ctx, seconds_str, 0, 0, s_bitmap_numbers_s_dark, UI_SECONDS_SPACING);
+  if (s_current_time.tm_min % 10 != 7) {
+    draw_string(ctx, seconds_str, starting_x, 0, s_bitmap_numbers_s_dark, UI_SECONDS_SPACING);
   }
   else {
     // The 7 number swoops to the left, leaving a dark background, so use light characters in this case.
-    draw_string(ctx, seconds_str, 0, 0, s_bitmap_numbers_s_light, UI_SECONDS_SPACING);
+    draw_string(ctx, seconds_str, starting_x, 0, s_bitmap_numbers_s_light, UI_SECONDS_SPACING);
   }
 }
 
@@ -832,7 +837,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_seconds();
   
   // Only run this logic on MINUTE change
-  if (units_changed & MINUTE_UNIT) {
+  if (tick_time->tm_min != last_drawn_minute) {
     time_t midnight_today_seconds = get_midnight_today_seconds();
     time_t current_seconds = mktime(tick_time);
     
@@ -845,6 +850,8 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Weather update interval triggered at [%d] minute mark!", settings.WeatherUpdateInterval);
       request_weather();
     }
+
+    last_drawn_minute = tick_time->tm_min;
   }
 
   // If it's within 2 minutes after sunrise or sunset, call update_conditions() to transition sun/moon icons.
@@ -1128,6 +1135,12 @@ static void main_window_load(Window *window) {
   s_bitmap_layer_time_m2 = bitmap_layer_create(GRect(L_ONES_X, L_MINUTES_Y, L_WIDTH, L_HEIGHT));
   bitmap_layer_set_alignment(s_bitmap_layer_time_m2, GAlignRight);
   layer_add_child(s_container_layer, bitmap_layer_get_layer(s_bitmap_layer_time_m2));
+
+  // Ensure the time is set very early.
+  time_t temp = time(NULL);
+  struct tm *tick_time = localtime(&temp);
+  update_time(tick_time);
+  last_drawn_minute = tick_time->tm_min;
 
   s_layer_seconds = layer_create(GRect(UI_SECONDS_X, UI_SECONDS_Y, UI_SECONDS_W, UI_SECONDS_H));
   layer_set_update_proc(s_layer_seconds, layer_seconds_update_proc);
