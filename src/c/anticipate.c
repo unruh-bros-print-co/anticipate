@@ -1150,6 +1150,10 @@ static void main_window_load(Window *window) {
   layer_set_update_proc(s_layer_date, layer_date_update_proc);
   layer_add_child(s_container_layer, s_layer_date);
 
+  // Ensure the date is set very early
+  s_current_time = *tick_time;
+  update_date(tick_time);
+
   s_layer_steps = layer_create(GRect(UI_STEPS_X, UI_STEPS_Y, UI_STEPS_W, UI_STEPS_H));
   layer_set_update_proc(s_layer_steps, layer_steps_update_proc);
   layer_add_child(s_container_layer, s_layer_steps);
