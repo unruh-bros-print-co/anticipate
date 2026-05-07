@@ -10,7 +10,7 @@
 static bool s_is_accel_subscribed = false;
 static AppTimer *s_seconds_timer = NULL;
 static bool s_seconds_within_display_interval = false;
-static int last_drawn_minute = -1;
+static bool s_hide_seconds_on_next_tick = false;
 
 typedef struct {
     char TemperatureUnit[4];
@@ -829,15 +829,41 @@ static void request_weather() {
 }
 
 /**
+ * @brief Function to execute when second Apptimer expires
+ */
+static void second_timer_callback() {
+  s_hide_seconds_on_next_tick = true;
+}
+
+/**
+ * @brief Function to hide the seconds after the designated interval.
+ */
+static void hide_seconds() {
+  s_seconds_within_display_interval = false;
+  layer_set_hidden(s_layer_seconds, true);
+}
+
+/**
  * @brief Handler function for when a 'tick' event occurs.
  */
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   s_current_time = *tick_time;
 
-  update_seconds();
+  // This helps smooth out the second display - waits till the next tick to disappear instead of midway through a second.
+  if (s_hide_seconds_on_next_tick) {
+    hide_seconds();
+    s_seconds_timer = NULL;
+    s_hide_seconds_on_next_tick = false;
+    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+  }
+
+  // Only run this logic on SECOND change
+  if (units_changed & SECOND_UNIT) {
+    update_seconds();
+  }
   
   // Only run this logic on MINUTE change
-  if (tick_time->tm_min != last_drawn_minute) {
+  if (units_changed & MINUTE_UNIT) {
     time_t midnight_today_seconds = get_midnight_today_seconds();
     time_t current_seconds = mktime(tick_time);
     
@@ -851,14 +877,12 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
       request_weather();
     }
 
-    last_drawn_minute = tick_time->tm_min;
-  }
-
-  // If it's within 2 minutes after sunrise or sunset, call update_conditions() to transition sun/moon icons.
-  time_t epoch_seconds = mktime(tick_time);
-  if ((epoch_seconds >= s_sunrise_seconds && epoch_seconds <= (s_sunrise_seconds + 120))
-    || (epoch_seconds >= s_sunset_seconds && epoch_seconds <= (s_sunset_seconds + 120))) {
-      update_conditions();
+    // If it's within 2 minutes after sunrise or sunset, call update_conditions() to transition sun/moon icons.
+    time_t epoch_seconds = mktime(tick_time);
+    if ((epoch_seconds >= s_sunrise_seconds && epoch_seconds <= (s_sunrise_seconds + 120))
+      || (epoch_seconds >= s_sunset_seconds && epoch_seconds <= (s_sunset_seconds + 120))) {
+        update_conditions();
+    }
   }
 }
 
@@ -871,8 +895,10 @@ static void prv_update_display() {
   time_t temp = time(NULL);
   struct tm *tick_time = localtime(&temp);
   update_time(tick_time);
+  update_date(tick_time);
+  
+  s_current_time = *tick_time;
   update_seconds();
-  layer_mark_dirty(s_layer_date);
   layer_mark_dirty(s_layer_temp_high);
   layer_mark_dirty(s_layer_temp_current);
   layer_mark_dirty(s_layer_temp_low);
@@ -880,53 +906,42 @@ static void prv_update_display() {
 }
 
 /**
- * @brief Function to hide the seconds after the designated interval.
- */
-static void hide_seconds_callback() {
-  s_seconds_within_display_interval = false;
-  s_seconds_timer = NULL;
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Subscribing tick_handler to MINUTE_UNIT");
-  tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
-
-  layer_set_hidden(s_layer_seconds, true);
-}
-
-/**
- * @brief Function to handle "watch shake / tap" events
+ * @brief Function to handle "watch shake / tap" motion events
  */
 static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
-    APP_LOG(APP_LOG_LEVEL_INFO, "Shake detected!");
+    APP_LOG(APP_LOG_LEVEL_INFO, "Motion detected!");
 
     time_t now = time(NULL);
     static time_t last_tap_event_time = 0;
 
-    // Only allow taps at defined interval to prevent too many events firing
+    // Only allow motion at defined interval to prevent too many events firing
     if (now - last_tap_event_time > 1) {
       last_tap_event_time = now;
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "Shake occurred after delay interval - Shake handler firing!");
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Motion occurred after delay interval - Shake handler firing!");
 
       vibes_short_pulse(); // Vibrate to acknowledge shake/tap event
 
-      if (settings.WeatherUpdateOnMotion) {
-        request_weather();
-      }
-
-      // If "Display seconds" is set to "_s on motion" (0=Off, 1=Always on, >1 indicates interval in seconds)
+      // If "Display seconds" is set to "_s on motion" (0=Off, 1=Always on, >1 indicates "_s on motion" interval in seconds)
       if (settings.DisplaySecondsInterval > 1) {
         s_seconds_within_display_interval = true;
         
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Subscribing tick_handler to SECOND_UNIT");
-        tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Subscribing tick_handler to (MINUTE_UNIT | SECOND_UNIT)");
+        tick_timer_service_subscribe(MINUTE_UNIT | SECOND_UNIT, tick_handler);
 
         if (s_seconds_timer) {
-          app_timer_cancel(s_seconds_timer); // Cancel any previous seconds timer
+          // If a timer exists, cancel it.
+          app_timer_cancel(s_seconds_timer);
           s_seconds_timer = NULL;
+          s_hide_seconds_on_next_tick = false;
         }
-        s_seconds_timer = app_timer_register(settings.DisplaySecondsInterval * 1000, hide_seconds_callback, NULL);
-
+        s_seconds_timer = app_timer_register(settings.DisplaySecondsInterval * 1000, second_timer_callback, NULL);
         time_t now = time(NULL);
-        tick_handler(localtime(&now), SECOND_UNIT);
+        struct tm tick_time_copy = *localtime(&now); // Note the '*': copy the values, not the pointer
+        tick_handler(&tick_time_copy, SECOND_UNIT | MINUTE_UNIT | HOUR_UNIT | DAY_UNIT);
+      }
+
+      if (settings.WeatherUpdateOnMotion) {
+        request_weather();
       }
     }
 }
@@ -954,14 +969,23 @@ static void update_service_subscriptions() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Accel unsubscribed");
   }
   
+  // If "Display Seconds" is "Always On", we want to subscribe to (MINUTE_UNIT | SECOND_UNIT) immediately
   if (settings.DisplaySecondsInterval == 1) {
-    tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
+    tick_timer_service_subscribe(MINUTE_UNIT | SECOND_UNIT, tick_handler);
     time_t now = time(NULL);
-    tick_handler(localtime(&now), SECOND_UNIT);
+    struct tm tick_time_copy = *localtime(&now); // Note the '*': copy the values, not the pointer
+    tick_handler(&tick_time_copy, SECOND_UNIT | MINUTE_UNIT | HOUR_UNIT | DAY_UNIT);
   }
   
-  if (settings.DisplaySecondsInterval < 1) {
-    hide_seconds_callback();
+  // If "Display Seconds" is OFF or using motion, we want to subscribe to MINUTE_UNIT only (motion may update the subscription to include SECOND_UNIT later)
+  if (settings.DisplaySecondsInterval < 1 || settings.DisplaySecondsInterval > 1) {
+    hide_seconds();
+    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+    // Cancel any timers since the settings are being updated.
+    if (s_seconds_timer) {
+      app_timer_cancel(s_seconds_timer); // Cancel any previous seconds timer
+      s_seconds_timer = NULL;
+    }
   }
 }
 
@@ -1136,12 +1160,6 @@ static void main_window_load(Window *window) {
   bitmap_layer_set_alignment(s_bitmap_layer_time_m2, GAlignRight);
   layer_add_child(s_container_layer, bitmap_layer_get_layer(s_bitmap_layer_time_m2));
 
-  // Ensure the time is set very early.
-  time_t temp = time(NULL);
-  struct tm *tick_time = localtime(&temp);
-  update_time(tick_time);
-  last_drawn_minute = tick_time->tm_min;
-
   s_layer_seconds = layer_create(GRect(UI_SECONDS_X, UI_SECONDS_Y, UI_SECONDS_W, UI_SECONDS_H));
   layer_set_update_proc(s_layer_seconds, layer_seconds_update_proc);
   layer_add_child(s_container_layer, s_layer_seconds);
@@ -1149,10 +1167,6 @@ static void main_window_load(Window *window) {
   s_layer_date = layer_create(GRect(UI_DATE_X, UI_DATE_Y, UI_DATE_W, UI_DATE_H));
   layer_set_update_proc(s_layer_date, layer_date_update_proc);
   layer_add_child(s_container_layer, s_layer_date);
-
-  // Ensure the date is set very early
-  s_current_time = *tick_time;
-  update_date(tick_time);
 
   s_layer_steps = layer_create(GRect(UI_STEPS_X, UI_STEPS_Y, UI_STEPS_W, UI_STEPS_H));
   layer_set_update_proc(s_layer_steps, layer_steps_update_proc);
