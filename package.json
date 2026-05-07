@@ -55,7 +55,8 @@
       "LeadingZeroXXS",
       "WeatherUpdateInterval",
       "WeatherUpdateOnMotion",
-      "DisplaySecondsInterval"
+      "DisplaySecondsInterval",
+      "VibrateOnMotion"
     ],
     "resources": {
       "media": [

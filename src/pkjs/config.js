@@ -8,7 +8,7 @@ module.exports = [
         "items": [
             {
                 "type": "heading",
-                "defaultValue": "Date"
+                "defaultValue": "Date & Time"
             },
             {
                 "type": "select",
@@ -19,15 +19,6 @@ module.exports = [
                     { "label": "Month-Day (MM-DD)", "value": "%m-%d" }
                 ],
                 "defaultValue": "%d-%m"
-            }
-        ]
-    },
-    {
-        "type": "section",
-        "items": [
-            {
-                "type": "heading",
-                "defaultValue": "Time"
             },
             {
                 "type": "toggle",
@@ -105,6 +96,21 @@ module.exports = [
                 "messageKey": "LeadingZeroXXS",
                 "label": "Use leading zero in 12h time format",
                 "defaultValue": true
+            }
+        ]
+    },
+    {
+        "type": "section",
+        "items": [
+            {
+                "type": "heading",
+                "defaultValue": "Haptics"
+            },
+            {
+                "type": "toggle",
+                "messageKey": "VibrateOnMotion",
+                "label": "Vibrate on motion",
+                "defaultValue": false
             }
         ]
     },

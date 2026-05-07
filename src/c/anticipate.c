@@ -20,6 +20,7 @@ typedef struct {
     int WeatherUpdateInterval;
     bool WeatherUpdateOnMotion;
     int DisplaySecondsInterval;
+    bool VibrateOnMotion;
 } ClaySettings;
 
 static ClaySettings settings;
@@ -32,6 +33,7 @@ static void prv_default_settings() {
   settings.WeatherUpdateInterval = DEFAULT_WEATHER_UPDATE_INTERVAL;
   settings.WeatherUpdateOnMotion = false;
   settings.DisplaySecondsInterval = 0;
+  settings.VibrateOnMotion = false;
 }
 
 static void prv_save_settings() {
@@ -919,7 +921,9 @@ static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
       last_tap_event_time = now;
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Motion occurred after delay interval - Shake handler firing!");
 
-      vibes_short_pulse(); // Vibrate to acknowledge shake/tap event
+      if (settings.VibrateOnMotion) {
+        vibes_short_pulse(); // Vibrate to acknowledge shake/tap event
+      }
 
       // If "Display seconds" is set to "_s on motion" (0=Off, 1=Always on, >1 indicates "_s on motion" interval in seconds)
       if (settings.DisplaySecondsInterval > 1) {
@@ -1357,9 +1361,13 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       settings.DisplaySecondsInterval = 0;
     }
   }
+  Tuple *vibrate_on_motion_t = dict_find(iterator, MESSAGE_KEY_VibrateOnMotion);
+  if (vibrate_on_motion_t) {
+    settings.VibrateOnMotion = (vibrate_on_motion_t->value->int32 == 1);
+  }
 
   // Save settings if any changed.
-  if (temp_unit_t || date_format_t || leading_zero_t || leading_zero_xxs_t || weather_update_interval_t || weather_update_on_motion_t || display_seconds_interval_t) {
+  if (temp_unit_t || date_format_t || leading_zero_t || leading_zero_xxs_t || weather_update_interval_t || weather_update_on_motion_t || display_seconds_interval_t || vibrate_on_motion_t) {
     prv_save_settings();
   }
 
