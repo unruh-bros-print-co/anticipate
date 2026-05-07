@@ -5,8 +5,12 @@
 // Settings
 #define SETTINGS_KEY 1
 #define DEFAULT_WEATHER_UPDATE_INTERVAL 30
+#define DISPLAY_SECONDS_MAX_INTERVAL 60
 
 static bool s_is_accel_subscribed = false;
+static AppTimer *s_seconds_timer = NULL;
+static bool s_seconds_within_display_interval = false;
+static bool s_hide_seconds_on_next_tick = false;
 
 typedef struct {
     char TemperatureUnit[4];
@@ -15,6 +19,7 @@ typedef struct {
     bool LeadingZeroXXS;
     int WeatherUpdateInterval;
     bool WeatherUpdateOnMotion;
+    int DisplaySecondsInterval;
 } ClaySettings;
 
 static ClaySettings settings;
@@ -26,6 +31,7 @@ static void prv_default_settings() {
   settings.LeadingZeroXXS = true;
   settings.WeatherUpdateInterval = DEFAULT_WEATHER_UPDATE_INTERVAL;
   settings.WeatherUpdateOnMotion = false;
+  settings.DisplaySecondsInterval = 0;
 }
 
 static void prv_save_settings() {
@@ -39,7 +45,7 @@ static void prv_load_settings() {
 
 // Define constants
 
-// (L)arge number placement & dimensions
+// (L)arge number dimensions & time UI placement
 static const uint16_t L_TENS_X = 44;
 static const uint16_t L_TENS_X_OFFSET = 17;
 static const uint16_t L_ONES_X = 94;
@@ -48,7 +54,7 @@ static const uint16_t L_MINUTES_Y = 79;
 static const uint16_t L_WIDTH = 46; 
 static const uint16_t L_HEIGHT = 71;
 
-// (S)mall number placement & dimensions
+// (S)mall number dimensions
 static const uint16_t S_WIDTH = 8;
 static const uint16_t S_WIDTH_1 = 5;
 static const uint16_t S_WIDTH_DASH = 4;
@@ -56,13 +62,13 @@ static const uint16_t S_WIDTH_DEGREE = 4;
 static const uint16_t S_WIDTH_LOADING = 4;
 static const uint16_t S_HEIGHT = 13;
 
-// E(x)tra (S)mall number placement & dimensions
+// E(x)tra (S)mall number dimensions
 static const uint16_t XS_WIDTH = 6;
 static const uint16_t XS_WIDTH_1 = 4;
 static const uint16_t XS_WIDTH_DASH = 4;
 static const uint16_t XS_HEIGHT = 10;
 
-// E(x)tra E(x)tra (S)mall number placement & dimensions
+// E(x)tra E(x)tra (S)mall number dimensions
 static const uint16_t XXS_WIDTH = 3;
 static const uint16_t XXS_WIDTH_1 = 2;
 static const uint16_t XXS_WIDTH_COLON = 1;
@@ -75,6 +81,13 @@ static const uint16_t INDEX_LOADING = 12; // '...'
 static const uint16_t INDEX_COLON = 13; // ':'
 
 // =-=-=- UI element placement & dimensions =-=-=-
+
+// Seconds: placement & dimensions
+static const uint16_t UI_SECONDS_X = 121;
+static const uint16_t UI_SECONDS_Y = 135;
+static const uint16_t UI_SECONDS_W = 17;
+static const uint16_t UI_SECONDS_H = 13;
+static const uint16_t UI_SECONDS_SPACING = 1;
 
 // Date: placement & dimensions
 static const uint16_t UI_DATE_X = 4;
@@ -178,6 +191,7 @@ static Layer *s_layer_temp_high;
 static Layer *s_layer_temp_current;
 static Layer *s_layer_temp_low;
 static Layer *s_layer_sunrise_sunset;
+static Layer *s_layer_seconds;
 
 // Conditions GBitmap and BitmapLayer
 static GBitmap *s_bitmap_conditions[10];
@@ -341,6 +355,30 @@ static void layer_date_update_proc(Layer *layer, GContext *ctx) {
   int starting_x = (layer_width - date_width) / 2;
 
   draw_string(ctx, date_str, starting_x, UI_DATE_CONTENT_Y, s_bitmap_numbers_xs_light, UI_DATE_SPACING);
+}
+
+/**
+ * @brief Seconds: layer_update_proc
+ */
+static void layer_seconds_update_proc(Layer *layer, GContext *ctx) {
+  static char seconds_str[] = "00";
+  strftime(seconds_str, sizeof(seconds_str), "%S", &s_current_time);
+
+  graphics_context_set_compositing_mode(ctx, GCompOpSet);
+
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "About to draw seconds:[%s]", seconds_str);
+
+  int seconds_width = calculate_string_width_px(seconds_str, s_bitmap_numbers_s_dark, UI_SECONDS_SPACING);
+
+  int starting_x = (layer_get_bounds(layer).size.w - seconds_width); // align-right
+  
+  if (s_current_time.tm_min % 10 != 7) {
+    draw_string(ctx, seconds_str, starting_x, 0, s_bitmap_numbers_s_dark, UI_SECONDS_SPACING);
+  }
+  else {
+    // The 7 number swoops to the left, leaving a dark background, so use light characters in this case.
+    draw_string(ctx, seconds_str, starting_x, 0, s_bitmap_numbers_s_light, UI_SECONDS_SPACING);
+  }
 }
 
 /**
@@ -666,6 +704,19 @@ static void update_time(struct tm *tick_time) {
 }
 
 /**
+ * @brief Function to update seconds display
+ */
+static void update_seconds() {
+  if (s_seconds_within_display_interval || settings.DisplaySecondsInterval == 1) {
+    layer_set_hidden(s_layer_seconds, false);
+    layer_mark_dirty(s_layer_seconds);
+  }
+  else {
+    layer_set_hidden(s_layer_seconds, true);
+  }
+}
+
+/**
  * @brief Date: update function
  */
 static void update_date(struct tm *tick_time) {
@@ -778,33 +829,60 @@ static void request_weather() {
 }
 
 /**
+ * @brief Function to execute when second Apptimer expires
+ */
+static void second_timer_callback() {
+  s_hide_seconds_on_next_tick = true;
+}
+
+/**
+ * @brief Function to hide the seconds after the designated interval.
+ */
+static void hide_seconds() {
+  s_seconds_within_display_interval = false;
+  layer_set_hidden(s_layer_seconds, true);
+}
+
+/**
  * @brief Handler function for when a 'tick' event occurs.
  */
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   s_current_time = *tick_time;
 
-  update_time(tick_time);
-  update_date(tick_time);
-  update_sun_index(tick_time);
-  update_steps();
+  // This helps smooth out the second display - waits till the next tick to disappear instead of midway through a second.
+  if (s_hide_seconds_on_next_tick) {
+    hide_seconds();
+    s_seconds_timer = NULL;
+    s_hide_seconds_on_next_tick = false;
+    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+  }
 
-  time_t midnight_today_seconds = get_midnight_today_seconds();
-  time_t current_seconds = mktime(tick_time);
-
+  // Only run this logic on SECOND change
+  if (units_changed & SECOND_UNIT) {
+    update_seconds();
+  }
+  
   // Only run this logic on MINUTE change
   if (units_changed & MINUTE_UNIT) {
+    time_t midnight_today_seconds = get_midnight_today_seconds();
+    time_t current_seconds = mktime(tick_time);
+    
+    update_time(tick_time);
+    update_date(tick_time);
+    update_sun_index(tick_time);
+    update_steps();
     // Request weather info at chosen interval, or within 2 minutes after midnight
     if ((settings.WeatherUpdateInterval > 0 && tick_time->tm_min % settings.WeatherUpdateInterval == 0) || (current_seconds >= midnight_today_seconds && current_seconds <= (midnight_today_seconds + 120))) {
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Weather update interval triggered at [%d] minute mark!", settings.WeatherUpdateInterval);
       request_weather();
     }
-  }
 
-  // If it's within 2 minutes after sunrise or sunset, call update_conditions() to transition sun/moon icons.
-  time_t epoch_seconds = mktime(tick_time);
-  if ((epoch_seconds >= s_sunrise_seconds && epoch_seconds <= (s_sunrise_seconds + 120))
-    || (epoch_seconds >= s_sunset_seconds && epoch_seconds <= (s_sunset_seconds + 120))) {
-      update_conditions();
+    // If it's within 2 minutes after sunrise or sunset, call update_conditions() to transition sun/moon icons.
+    time_t epoch_seconds = mktime(tick_time);
+    if ((epoch_seconds >= s_sunrise_seconds && epoch_seconds <= (s_sunrise_seconds + 120))
+      || (epoch_seconds >= s_sunset_seconds && epoch_seconds <= (s_sunset_seconds + 120))) {
+        update_conditions();
+    }
   }
 }
 
@@ -817,7 +895,10 @@ static void prv_update_display() {
   time_t temp = time(NULL);
   struct tm *tick_time = localtime(&temp);
   update_time(tick_time);
-  layer_mark_dirty(s_layer_date);
+  update_date(tick_time);
+  
+  s_current_time = *tick_time;
+  update_seconds();
   layer_mark_dirty(s_layer_temp_high);
   layer_mark_dirty(s_layer_temp_current);
   layer_mark_dirty(s_layer_temp_low);
@@ -825,40 +906,86 @@ static void prv_update_display() {
 }
 
 /**
- * @brief Function to handle "watch shake / tap" events
+ * @brief Function to handle "watch shake / tap" motion events
  */
 static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
-    APP_LOG(APP_LOG_LEVEL_INFO, "Shake detected!");
+    APP_LOG(APP_LOG_LEVEL_INFO, "Motion detected!");
 
     time_t now = time(NULL);
     static time_t last_tap_event_time = 0;
 
-    // Only allow taps at defined interval to prevent too many events firing
+    // Only allow motion at defined interval to prevent too many events firing
     if (now - last_tap_event_time > 1) {
       last_tap_event_time = now;
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "Shake occurred after delay interval - Shake handler firing!");
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Motion occurred after delay interval - Shake handler firing!");
 
       vibes_short_pulse(); // Vibrate to acknowledge shake/tap event
 
-      request_weather();
+      // If "Display seconds" is set to "_s on motion" (0=Off, 1=Always on, >1 indicates "_s on motion" interval in seconds)
+      if (settings.DisplaySecondsInterval > 1) {
+        s_seconds_within_display_interval = true;
+        
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Subscribing tick_handler to (MINUTE_UNIT | SECOND_UNIT)");
+        tick_timer_service_subscribe(MINUTE_UNIT | SECOND_UNIT, tick_handler);
+
+        if (s_seconds_timer) {
+          // If a timer exists, cancel it.
+          app_timer_cancel(s_seconds_timer);
+          s_seconds_timer = NULL;
+          s_hide_seconds_on_next_tick = false;
+        }
+        s_seconds_timer = app_timer_register(settings.DisplaySecondsInterval * 1000, second_timer_callback, NULL);
+        time_t now = time(NULL);
+        struct tm tick_time_copy = *localtime(&now); // Note the '*': copy the values, not the pointer
+        tick_handler(&tick_time_copy, SECOND_UNIT | MINUTE_UNIT | HOUR_UNIT | DAY_UNIT);
+      }
+
+      if (settings.WeatherUpdateOnMotion) {
+        request_weather();
+      }
     }
 }
 
 /**
  * @brief Function to sync accelerometer subscriptions based on settings
  */
-static void update_motion_subscriptions() {
+static void update_service_subscriptions() {
   if (settings.WeatherUpdateOnMotion && !s_is_accel_subscribed) {
+    accel_tap_service_subscribe(accel_tap_handler);
+    s_is_accel_subscribed = true;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Accel subscribed");
+  }
+  
+  if (settings.DisplaySecondsInterval > 1 && !s_is_accel_subscribed) {
     accel_tap_service_subscribe(accel_tap_handler);
     s_is_accel_subscribed = true;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Accel subscribed");
   }
 
   // If all the shake settings are turned off (check them all in this if-statement), and the accelerometer handler is subscribed, unsubscribe it.
-  if (!settings.WeatherUpdateOnMotion && s_is_accel_subscribed) {
+  if (!settings.WeatherUpdateOnMotion && (settings.DisplaySecondsInterval <= 1) && s_is_accel_subscribed) {
     accel_tap_service_unsubscribe();
     s_is_accel_subscribed = false;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Accel unsubscribed");
+  }
+  
+  // If "Display Seconds" is "Always On", we want to subscribe to (MINUTE_UNIT | SECOND_UNIT) immediately
+  if (settings.DisplaySecondsInterval == 1) {
+    tick_timer_service_subscribe(MINUTE_UNIT | SECOND_UNIT, tick_handler);
+    time_t now = time(NULL);
+    struct tm tick_time_copy = *localtime(&now); // Note the '*': copy the values, not the pointer
+    tick_handler(&tick_time_copy, SECOND_UNIT | MINUTE_UNIT | HOUR_UNIT | DAY_UNIT);
+  }
+  
+  // If "Display Seconds" is OFF or using motion, we want to subscribe to MINUTE_UNIT only (motion may update the subscription to include SECOND_UNIT later)
+  if (settings.DisplaySecondsInterval < 1 || settings.DisplaySecondsInterval > 1) {
+    hide_seconds();
+    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+    // Cancel any timers since the settings are being updated.
+    if (s_seconds_timer) {
+      app_timer_cancel(s_seconds_timer); // Cancel any previous seconds timer
+      s_seconds_timer = NULL;
+    }
   }
 }
 
@@ -1033,6 +1160,10 @@ static void main_window_load(Window *window) {
   bitmap_layer_set_alignment(s_bitmap_layer_time_m2, GAlignRight);
   layer_add_child(s_container_layer, bitmap_layer_get_layer(s_bitmap_layer_time_m2));
 
+  s_layer_seconds = layer_create(GRect(UI_SECONDS_X, UI_SECONDS_Y, UI_SECONDS_W, UI_SECONDS_H));
+  layer_set_update_proc(s_layer_seconds, layer_seconds_update_proc);
+  layer_add_child(s_container_layer, s_layer_seconds);
+
   s_layer_date = layer_create(GRect(UI_DATE_X, UI_DATE_Y, UI_DATE_W, UI_DATE_H));
   layer_set_update_proc(s_layer_date, layer_date_update_proc);
   layer_add_child(s_container_layer, s_layer_date);
@@ -1078,6 +1209,8 @@ static void main_window_load(Window *window) {
  */
 static void main_window_unload(Window *window) {
   
+  layer_destroy(s_layer_seconds);
+
   bitmap_layer_destroy(s_bitmap_layer_time_h1);
   bitmap_layer_destroy(s_bitmap_layer_time_h1_offset);
   bitmap_layer_destroy(s_bitmap_layer_time_h2);
@@ -1207,20 +1340,32 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   Tuple *weather_update_interval_t = dict_find(iterator, MESSAGE_KEY_WeatherUpdateInterval);
   if (weather_update_interval_t) {
     settings.WeatherUpdateInterval = atoi(weather_update_interval_t->value->cstring);
-  }
-  // Safety: Prevent division by zero if the string was empty/invalid
-  if (settings.WeatherUpdateInterval <= 0) {
-    settings.WeatherUpdateInterval = DEFAULT_WEATHER_UPDATE_INTERVAL;
+     // Safety: Prevent division by zero if the weather_update_interval string was empty/invalid
+    if (settings.WeatherUpdateInterval <= 0) {
+      settings.WeatherUpdateInterval = DEFAULT_WEATHER_UPDATE_INTERVAL;
+    }
   }
   Tuple *weather_update_on_motion_t = dict_find(iterator, MESSAGE_KEY_WeatherUpdateOnMotion);
   if (weather_update_on_motion_t) {
     settings.WeatherUpdateOnMotion = (weather_update_on_motion_t->value->int32 == 1);
   }
+  Tuple *display_seconds_interval_t = dict_find(iterator, MESSAGE_KEY_DisplaySecondsInterval);
+  if (display_seconds_interval_t) {
+    settings.DisplaySecondsInterval = atoi(display_seconds_interval_t->value->cstring);
+    // Safety: Turn off if DisplaySecondsInterval is invalid
+    if (settings.DisplaySecondsInterval < 0 || settings.DisplaySecondsInterval > DISPLAY_SECONDS_MAX_INTERVAL) {
+      settings.DisplaySecondsInterval = 0;
+    }
+  }
+
+  // Save settings if any changed.
+  if (temp_unit_t || date_format_t || leading_zero_t || leading_zero_xxs_t || weather_update_interval_t || weather_update_on_motion_t || display_seconds_interval_t) {
+    prv_save_settings();
+  }
 
   // Save and apply display-related settings if any were changed
   // if any Clay Settings dicts were found (add additional display-related settings to this if-statement)
-  if (temp_unit_t || date_format_t || leading_zero_t || leading_zero_xxs_t) {
-    prv_save_settings();
+  if (temp_unit_t || date_format_t || leading_zero_t || leading_zero_xxs_t || display_seconds_interval_t) {
     prv_update_display();
 
     // Refetch the weather if the temperature unit changed
@@ -1230,9 +1375,8 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   }
 
   // Save and apply any service-related settings if any were changed
-  if (weather_update_interval_t || weather_update_on_motion_t) {
-    prv_save_settings();
-    update_motion_subscriptions();
+  if (weather_update_interval_t || weather_update_on_motion_t || display_seconds_interval_t) {
+    update_service_subscriptions();
   }
 }
 
@@ -1290,10 +1434,7 @@ static void init() {
   const int outbox_size = 256;
   app_message_open(inbox_size, outbox_size);
 
-  update_motion_subscriptions();
-
-  tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
-  tick_handler(tick_time, MINUTE_UNIT);
+  update_service_subscriptions();
 }
 
 /**
