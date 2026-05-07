@@ -42,12 +42,12 @@ module.exports = [
                 "options": [
                     { "label": "Off", "value": "0" },
                     { "label": "Always on", "value": "1" },
-                    { "label": "5s on motion", "value": "5" },
-                    { "label": "10s on motion", "value": "10" },
-                    { "label": "15s on motion", "value": "15" },
-                    { "label": "30s on motion", "value": "30" },
-                    { "label": "45s on motion", "value": "45" },
-                    { "label": "1 min on motion", "value": "60" }
+                    { "label": "5 sec (on motion)", "value": "5" },
+                    { "label": "10 sec (on motion)", "value": "10" },
+                    { "label": "15 sec (on motion)", "value": "15" },
+                    { "label": "30 sec (on motion)", "value": "30" },
+                    { "label": "45 sec (on motion)", "value": "45" },
+                    { "label": "1 min (on motion)", "value": "60" }
                 ],
                 "defaultValue": "0"
             }
