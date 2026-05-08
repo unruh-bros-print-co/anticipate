@@ -11,6 +11,8 @@ static bool s_is_accel_subscribed = false;
 static AppTimer *s_seconds_timer = NULL;
 static bool s_seconds_within_display_interval = false;
 static bool s_hide_seconds_on_next_tick = false;
+static int s_last_min = -1;
+static int s_last_sec = -1;
 
 typedef struct {
     char TemperatureUnit[4];
@@ -849,6 +851,16 @@ static void hide_seconds() {
  * @brief Handler function for when a 'tick' event occurs.
  */
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "tick_handler([%d:%d:%d], [%d%d%d%d])", 
+    tick_time->tm_hour,
+    tick_time->tm_min,
+    tick_time->tm_sec, 
+    (units_changed & DAY_UNIT) ? 1 : 0,
+    (units_changed & HOUR_UNIT) ? 1 : 0,
+    (units_changed & MINUTE_UNIT) ? 1 : 0,
+    (units_changed & SECOND_UNIT) ? 1 : 0
+  );
+
   s_current_time = *tick_time;
 
   // This helps smooth out the second display - waits till the next tick to disappear instead of midway through a second.
@@ -860,12 +872,15 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   }
 
   // Only run this logic on SECOND change
-  if (units_changed & SECOND_UNIT) {
+  // if (units_changed & SECOND_UNIT) {
+  if (s_last_sec != tick_time->tm_sec) {
     update_seconds();
+    s_last_sec = tick_time->tm_sec;
   }
   
   // Only run this logic on MINUTE change
-  if (units_changed & MINUTE_UNIT) {
+  // if (units_changed & MINUTE_UNIT) {
+  if (s_last_min != tick_time->tm_min) {
     time_t midnight_today_seconds = get_midnight_today_seconds();
     time_t current_seconds = mktime(tick_time);
     
@@ -886,6 +901,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
         update_conditions();
     }
   }
+  s_last_min = tick_time->tm_min;
 }
 
 /**
