@@ -928,9 +928,6 @@ static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
       // If "Display seconds" is set to "_s on motion" (0=Off, 1=Always on, >1 indicates "_s on motion" interval in seconds)
       if (settings.DisplaySecondsInterval > 1) {
         s_seconds_within_display_interval = true;
-        
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Subscribing tick_handler to (MINUTE_UNIT | SECOND_UNIT)");
-        tick_timer_service_subscribe(MINUTE_UNIT | SECOND_UNIT, tick_handler);
 
         if (s_seconds_timer) {
           // If a timer exists, cancel it.
@@ -942,6 +939,9 @@ static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
         time_t now = time(NULL);
         struct tm tick_time_copy = *localtime(&now); // Note the '*': copy the values, not the pointer
         tick_handler(&tick_time_copy, SECOND_UNIT | MINUTE_UNIT | HOUR_UNIT | DAY_UNIT);
+
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Subscribing tick_handler to (MINUTE_UNIT | SECOND_UNIT)");
+        tick_timer_service_subscribe(MINUTE_UNIT | SECOND_UNIT, tick_handler);
       }
 
       if (settings.WeatherUpdateOnMotion) {
