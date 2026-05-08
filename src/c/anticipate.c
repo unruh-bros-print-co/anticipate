@@ -26,8 +26,6 @@ typedef struct {
 static ClaySettings settings;
 
 static void prv_default_settings() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: prv_default_settings()");
-
   strncpy(settings.DateFormat, "%d-%m", sizeof(settings.DateFormat));
   strncpy(settings.TemperatureUnit, "C", sizeof(settings.TemperatureUnit));
   settings.LeadingZero = true;
@@ -36,25 +34,15 @@ static void prv_default_settings() {
   settings.WeatherUpdateOnMotion = false;
   settings.DisplaySecondsInterval = 0;
   settings.VibrateOnMotion = false;
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: prv_default_settings()");
 }
 
 static void prv_save_settings() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: prv_save_settings()");
-
   persist_write_data(SETTINGS_KEY, &settings, sizeof(settings));
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: prv_save_settings()");
 }
 
 static void prv_load_settings() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: prv_load_settings()");
-
   prv_default_settings();
   persist_read_data(SETTINGS_KEY, &settings, sizeof(settings));
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: prv_load_settings()");
 }
 
 // Define constants
@@ -230,8 +218,6 @@ static char s_condition[50];
  * when using the given array of Bitmap characters to draw, as well as how man px go in between each character.
  */
 int calculate_string_width_px(char *str, BitmapInfo *bitmapInfoArray, uint16_t spacing_px) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: calculate_string_width_px()");
-
   int total_width = 0;
 
   for (int i = 0; str[i] != '\0'; i++) {
@@ -267,8 +253,6 @@ int calculate_string_width_px(char *str, BitmapInfo *bitmapInfoArray, uint16_t s
   }
 
   return total_width;
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: calculate_string_width_px()");
 }
 
 /**
@@ -276,8 +260,6 @@ int calculate_string_width_px(char *str, BitmapInfo *bitmapInfoArray, uint16_t s
  * using the provided character Bitmap array, and spacing width (in px).
  */
 void draw_string(GContext *ctx, char *str, int x_start, int y, BitmapInfo *bitmapInfoArray, uint16_t spacing_px) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: draw_string()");
-
   int x_current = x_start;
   
   for (int i = 0; str[i] != '\0'; i++) {
@@ -317,16 +299,12 @@ void draw_string(GContext *ctx, char *str, int x_start, int y, BitmapInfo *bitma
     // increase x (include spacing)
     x_current += current_width + spacing_px;
   }
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: draw_string()");
 }
 
 /**
  * @brief Gets the unix-seconds value of midnight (start of day) this morning.
  */
 static time_t get_midnight_today_seconds() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: get_midnight_today_seconds()");
-
   // 1. Get the current time
   time_t now = time(NULL);
   
@@ -343,16 +321,12 @@ static time_t get_midnight_today_seconds() {
   
   // 5. Convert back to seconds since epoch
   return mktime(t);
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: get_midnight_today_seconds()");
 }
 
 /**
  * @brief Determine if it's currently night.
  */
 static bool is_night() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: is_night()");
-
   time_t midnight_today_seconds = get_midnight_today_seconds();
   if (s_sunrise_seconds > midnight_today_seconds && s_sunset_seconds > midnight_today_seconds) {
     time_t now = time(NULL);
@@ -362,8 +336,6 @@ static bool is_night() {
     // old sunrise/sunset values - return true
     return false;
   }
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: is_night()");
 }
 
 // -=-=-= Update Procedure Functions -=-=-=
@@ -372,7 +344,6 @@ static bool is_night() {
  * @brief Date:  layer_update_proc
  */
 static void layer_date_update_proc(Layer *layer, GContext *ctx) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: layer_date_update_proc()");
   
   static char date_str[] = "xx-xx";
   strftime(date_str, sizeof(date_str), settings.DateFormat, &s_current_time);
@@ -386,16 +357,12 @@ static void layer_date_update_proc(Layer *layer, GContext *ctx) {
   int starting_x = (layer_width - date_width) / 2;
 
   draw_string(ctx, date_str, starting_x, UI_DATE_CONTENT_Y, s_bitmap_numbers_xs_light, UI_DATE_SPACING);
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: layer_date_update_proc()");
 }
 
 /**
  * @brief Seconds: layer_update_proc
  */
 static void layer_seconds_update_proc(Layer *layer, GContext *ctx) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: layer_seconds_update_proc()");
-
   static char seconds_str[] = "00";
   strftime(seconds_str, sizeof(seconds_str), "%S", &s_current_time);
 
@@ -414,16 +381,12 @@ static void layer_seconds_update_proc(Layer *layer, GContext *ctx) {
     // The 7 number swoops to the left, leaving a dark background, so use light characters in this case.
     draw_string(ctx, seconds_str, starting_x, 0, s_bitmap_numbers_s_light, UI_SECONDS_SPACING);
   }
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: layer_seconds_update_proc()");
 }
 
 /**
 * @brief Steps: layer_update_proc
 */
 static void layer_steps_update_proc(Layer *layer, GContext *ctx) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: layer_steps_update_proc()");
-
   static char steps_str[] = "00000";
   snprintf(steps_str, sizeof(steps_str), "%03d", s_current_steps);
 
@@ -436,16 +399,12 @@ static void layer_steps_update_proc(Layer *layer, GContext *ctx) {
   int starting_x = (layer_width - steps_width) / 2;
 
   draw_string(ctx, steps_str, starting_x, UI_STEPS_CONTENT_Y, s_bitmap_numbers_xs_dark, UI_STEPS_SPACING);
-  
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: layer_steps_update_proc()");
 }
 
 /**
  * @brief Temp-HI: layer_update_proc
  */
 static void layer_temp_high_update_proc(Layer *layer, GContext *ctx) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: layer_temp_high_update_proc()");
-
   static char temp_high_str[] = "-2000°";
   if (s_temp_high_loading) {
     strcpy(temp_high_str, "--*");
@@ -473,16 +432,12 @@ static void layer_temp_high_update_proc(Layer *layer, GContext *ctx) {
   starting_x += UI_TEMP_OFFSET;
 
   draw_string(ctx, temp_high_str, starting_x, UI_TEMP_CONTENT_Y, s_bitmap_numbers_s_light, UI_TEMP_SPACING);
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: layer_temp_high_update_proc()");
 }
 
 /**
  * @brief Temp-Current: layer_update_proc
  */
 static void layer_temp_current_update_proc(Layer *layer, GContext *ctx) {
-APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: layer_temp_current_update_proc()");
-
   static char temp_current_str[] = "-2000°";
   if (s_temp_current_loading) {
     strcpy(temp_current_str, "--*");
@@ -510,16 +465,12 @@ APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: layer_temp_current_update_proc()");
   starting_x += UI_TEMP_OFFSET;
 
   draw_string(ctx, temp_current_str, starting_x, UI_TEMP_CONTENT_Y, s_bitmap_numbers_s_dark, UI_TEMP_SPACING);
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: layer_temp_current_update_proc()");
 }
 
 /**
  * @brief Temp-LO: layer_update_proc
  */
 static void layer_temp_low_update_proc(Layer *layer, GContext *ctx) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: layer_temp_low_update_proc()");
-
   static char temp_low_str[] = "-2000°";
   if (s_temp_low_loading) {
     strcpy(temp_low_str, "--*");
@@ -547,16 +498,12 @@ static void layer_temp_low_update_proc(Layer *layer, GContext *ctx) {
   starting_x += UI_TEMP_OFFSET;
 
   draw_string(ctx, temp_low_str, starting_x, UI_TEMP_CONTENT_Y, s_bitmap_numbers_s_light, UI_TEMP_SPACING);
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: layer_temp_low_update_proc()");
 }
 
 /**
  * @brief Sunrise / Sunset Display: layer_update_proc
  */
 static void layer_sunrise_sunset_update_proc(Layer *layer, GContext *ctx) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: layer_sunrise_sunset_update_proc()");
-
   // Set the Graphics Context Colors for when its time to draw.
   graphics_context_set_compositing_mode(ctx, GCompOpAssign);
   graphics_context_set_stroke_color(ctx, GColorWhite);
@@ -707,15 +654,12 @@ static void layer_sunrise_sunset_update_proc(Layer *layer, GContext *ctx) {
 
   draw_string(ctx, sunrise_label, sunrise_label_x, 0, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
   draw_string(ctx, sunset_label, sunset_label_x, 0, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: layer_sunrise_sunset_update_proc()");
 }
 
 /**
  * @brief Time: Update function
  */
 static void update_time(struct tm *tick_time) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: update_time()");
 
   int display_hour = tick_time->tm_hour;
 
@@ -759,16 +703,12 @@ static void update_time(struct tm *tick_time) {
     bitmap_layer_set_bitmap(s_bitmap_layer_time_m1, s_bitmap_numbers_lg[m_tens]);
     bitmap_layer_set_bitmap(s_bitmap_layer_time_m1_offset, NULL);
   }
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: update_time()");
 }
 
 /**
  * @brief Function to update seconds display
  */
 static void update_seconds() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: update_seconds()");
-
   if (s_seconds_within_display_interval || settings.DisplaySecondsInterval == 1) {
     layer_set_hidden(s_layer_seconds, false);
     layer_mark_dirty(s_layer_seconds);
@@ -776,25 +716,17 @@ static void update_seconds() {
   else {
     layer_set_hidden(s_layer_seconds, true);
   }
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: update_seconds()");
 }
 
 /**
  * @brief Date: update function
  */
 static void update_date(struct tm *tick_time) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: update_date()");
-
   // TODO add logic so you only update the UI when the day changes for efficiency
   layer_mark_dirty(s_layer_date);
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: update_date()");
 }
 
 static void update_sun_index(struct tm *tick_time) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: update_sun_index()");
-
   int hr = tick_time->tm_hour;
   int min = tick_time->tm_min;
   
@@ -804,16 +736,12 @@ static void update_sun_index(struct tm *tick_time) {
   int sun_index_x = SUN_INDEX_START_X - SUN_INDEX_BITMAP_LEFT_OFFSET + (minute_of_day / 15);
 
   layer_set_frame(bitmap_layer_get_layer(s_bitmap_layer_sun_index), GRect(sun_index_x, SUN_INDEX_Y, SUN_INDEX_BITMAP_W, SUN_INDEX_BITMAP_H));
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: update_sun_index()");
 }
 
 /**
 * @brief Steps: update function
 */
 static void update_steps() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: update_steps()");
-
   #if defined(PBL_HEALTH)
 
   HealthMetric metric = HealthMetricStepCount;
@@ -832,15 +760,12 @@ static void update_steps() {
   #else
   // Health data not available
   #endif
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: update_steps()");
 }
 
 /**
  * @brief Conditions: update function
  */
 static void update_conditions() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: update_conditions()");
 
   if (strcmp(s_condition, "CLEAR") == 0) {
     if (is_night()) {
@@ -886,16 +811,12 @@ static void update_conditions() {
   }
 
   layer_mark_dirty(bitmap_layer_get_layer(s_bitmap_layer_conditions));
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: update_conditions()");
 }
 
 /**
  * @brief Helper function to request weather data.
  */
 static void request_weather() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: request_weather()");
-
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Sending REQUEST_WEATHER message...", settings.WeatherUpdateInterval);
 
   // Begin dictionary
@@ -907,39 +828,27 @@ static void request_weather() {
 
   // Send the message!
   app_message_outbox_send(); // This requests the latest weather and daylight
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: request_weather()");
 }
 
 /**
  * @brief Function to execute when second Apptimer expires
  */
 static void second_timer_callback() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: second_timer_callback()");
-
   s_hide_seconds_on_next_tick = true;
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: second_timer_callback()");
 }
 
 /**
  * @brief Function to hide the seconds after the designated interval.
  */
 static void hide_seconds() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: hide_seconds()");
-
   s_seconds_within_display_interval = false;
   layer_set_hidden(s_layer_seconds, true);
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: hide_seconds()");
 }
 
 /**
  * @brief Handler function for when a 'tick' event occurs.
  */
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: tick_handler()");
-
   s_current_time = *tick_time;
 
   // This helps smooth out the second display - waits till the next tick to disappear instead of midway through a second.
@@ -977,16 +886,12 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
         update_conditions();
     }
   }
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: tick_handler()");
 }
 
 /**
  * @brief Function to update UI based on settings
  */
 static void prv_update_display() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: prv_update_display()");
-
   // 1. show or hide layers, and set colors here - based on 'settings' variable.
   // 2. mark any layers dirty that need to be redrawn using settings colors etc.
   time_t temp = time(NULL);
@@ -1000,16 +905,12 @@ static void prv_update_display() {
   layer_mark_dirty(s_layer_temp_current);
   layer_mark_dirty(s_layer_temp_low);
   layer_mark_dirty(s_layer_sunrise_sunset);
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: prv_update_display()");
 }
 
 /**
  * @brief Function to handle "watch shake / tap" motion events
  */
 static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: accel_tap_handler()");
-
     APP_LOG(APP_LOG_LEVEL_INFO, "Motion detected!");
 
     time_t now = time(NULL);
@@ -1047,16 +948,12 @@ static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
         request_weather();
       }
     }
-
-    APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: accel_tap_handler()");
 }
 
 /**
  * @brief Function to sync accelerometer subscriptions based on settings
  */
 static void update_service_subscriptions() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: update_service_subscriptions()");
-
   if (settings.WeatherUpdateOnMotion && !s_is_accel_subscribed) {
     accel_tap_service_subscribe(accel_tap_handler);
     s_is_accel_subscribed = true;
@@ -1094,16 +991,12 @@ static void update_service_subscriptions() {
       s_seconds_timer = NULL;
     }
   }
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: update_service_subscriptions()");
 }
 
 /**
  * @brief Main window loading function
  */
 static void main_window_load(Window *window) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: main_window_load()");
-
   Layer *root_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(root_layer);
 
@@ -1313,15 +1206,12 @@ static void main_window_load(Window *window) {
   layer_add_child(s_container_layer, s_layer_sunrise_sunset);
 
   prv_update_display(); // Update any layers that will be effected by settings.
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: main_window_load()");
 }
 
 /**
  * @brief Main window unloading function
  */
 static void main_window_unload(Window *window) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: main_window_unload()");
   
   layer_destroy(s_layer_seconds);
 
@@ -1383,16 +1273,12 @@ static void main_window_unload(Window *window) {
   bitmap_layer_destroy(s_bitmap_layer_background);
 
   layer_destroy(s_container_layer);
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: main_window_unload()");
 }
 
 /**
  * @brief Function for handling incoming callback messages from phone.
  */
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: inbox_received_callback()");
-
   APP_LOG(APP_LOG_LEVEL_INFO, "Inbox received message!");
 
   // Check for weather data
@@ -1500,8 +1386,6 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   if (weather_update_interval_t || weather_update_on_motion_t || display_seconds_interval_t) {
     update_service_subscriptions();
   }
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: inbox_received_callback()");
 }
 
 /**
@@ -1529,8 +1413,6 @@ static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
  * @brief Function to initialize the application
  */
 static void init() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: init()");
-
   prv_load_settings();
 
   s_main_window = window_create();
@@ -1561,32 +1443,22 @@ static void init() {
   app_message_open(inbox_size, outbox_size);
 
   update_service_subscriptions();
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: init()");
 }
 
 /**
  * @brief Function to de-initializes the application
  */
 static void deinit() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: deinit()");
-
   tick_timer_service_unsubscribe();
   accel_tap_service_unsubscribe();
   window_destroy(s_main_window);
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: deinit()");
 }
 
 /**
  * @brief The main() function that runs the application.
  */
 int main() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "start: main()");
-
   init();
   app_event_loop();
   deinit();
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "end: main()");
 }
