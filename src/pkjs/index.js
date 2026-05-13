@@ -1,3 +1,7 @@
+var Clay = require('@rebble/clay');
+var clayConfig = require('./config');
+var clay = new Clay(clayConfig);
+
 var xhrRequest = function (url, type, callback) {
     var xhr = new XMLHttpRequest();
     xhr.onload = function () {
@@ -15,7 +19,6 @@ function locationSuccess(pos) {
     '&current=temperature_2m,is_day,weather_code' +
     '&timezone=auto' +
     '&forecast_days=1' +
-    '&temperature_unit=fahrenheit' +
     '&timeformat=unixtime';
 
     xhrRequest(url, 'GET',
@@ -199,6 +202,8 @@ Pebble.addEventListener('ready',
 Pebble.addEventListener('appmessage',
     function(e) {
         console.log('AppMessage received!');
-        getWeather();
+        if (e.payload['REQUEST_WEATHER']) {
+            getWeather();
+        }
     }
 );
