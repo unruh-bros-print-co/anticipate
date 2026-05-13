@@ -510,9 +510,25 @@ static void layer_sunrise_sunset_update_proc(Layer *layer, GContext *ctx) {
   graphics_context_set_compositing_mode(ctx, GCompOpAssign);
   graphics_context_set_stroke_color(ctx, GColorWhite);
   graphics_context_set_fill_color(ctx, GColorWhite);
+  
+  time_t midnight_today_seconds = get_midnight_today_seconds();
 
+  bool is_valid_sunrise_sunset = (
+    s_sunrise_seconds
+    && s_sunset_seconds
+    && (s_sunset_seconds > s_sunrise_seconds)
+    && (s_sunrise_seconds > midnight_today_seconds)
+  );
+  
   // If sunrise/sunset data is still loading, draw 3 placeholder boxes.
-  if (s_sunrise_sunset_loading) {
+  if (s_sunrise_sunset_loading || !is_valid_sunrise_sunset) {
+
+    if (!is_valid_sunrise_sunset) {
+      // TODO - add some special-case handling - what if sunset comes before sunrise some day, or it's all sun, or no sun day.. 
+      // For now, just draw "loading" display if sunrise and sunset are not standard...
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Non-standard sunrise[%ld] and sunset[%ld] times. Will not display.", s_sunrise_seconds, s_sunset_seconds);
+    }
+
     // Draw the "bars loading" boxes
     graphics_draw_rect(ctx, GRect(
       0, 
@@ -541,26 +557,6 @@ static void layer_sunrise_sunset_update_proc(Layer *layer, GContext *ctx) {
       0,
       UI_SUNRISE_SUNSET_LOAD_BOX_LABEL_W,
       UI_SUNLIGHT_LABELS_H));
-    return;
-  }
-  
-  time_t midnight_today_seconds = get_midnight_today_seconds();
-
-  // TODO - add some special-case handling - what if sunset comes before sunrise some day, or it's all sun, or no sun day.. 
-  // For now, return if sunrise and sunset are not standard...
-  if (!(
-    s_sunrise_seconds
-    && s_sunset_seconds
-    && (s_sunset_seconds > s_sunrise_seconds)
-    && (s_sunrise_seconds > midnight_today_seconds))) {
-    APP_LOG(APP_LOG_LEVEL_ERROR, "Non-standard sunrise[%ld] and sunset[%ld] times. Will not display.", s_sunrise_seconds, s_sunset_seconds);
-    // Draw one rectangle without data.
-    graphics_draw_rect(ctx, GRect(
-      0,
-      UI_SUNRISE_SUNSET_BARS_Y,
-      UI_SUNRISE_SUNSET_W,
-      UI_SUNRISE_SUNSET_BARS_H
-    )); // TODO draw at the correct subset of the layer
     return;
   }
 
