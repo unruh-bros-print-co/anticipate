@@ -188,17 +188,6 @@ function getWeather() {
     );
 }
 
-/**
- * This listener will help handle the install of v2 for the 3 scenarios.
- * #1 Existing users migrating from v1 to v2
- *      -> lock in settings that match v1 (Fahrenheit, MM-DD, No Leading Zeros)
- * 
- * #2 New users installing v2 for the first time
- *      -> default the settings to the user's locale.
- * 
- * #3 This method is also called for up-to-date v2 users when the app starts.
- *      -> don't change any settings.
- */
 Pebble.addEventListener('ready',
     function(e) {
         console.log('PebbleKit JS ready!');
@@ -206,10 +195,10 @@ Pebble.addEventListener('ready',
         var claySettingsJSON = localStorage.getItem('clay-settings');
         var claySettings = null;
         
-        // #2 New user installing v2: No 'clay-settings' found on phone.
-        //      -> Default the settings to the user's locale.
+        // Fresh install: No 'clay-settings' found on phone.
+        //      -> Set initial settings defaults based on the user's locale.
         if (claySettingsJSON === null) {
-            console.log('V2 INSTALL detected! New user installing V2: assigning locale-based settings...');
+            console.log('V2 INSTALL detected! Assigning locale-based settings defaults...');
 
             var locale = (navigator.language || 'en-US').toLowerCase();
             
@@ -252,53 +241,27 @@ Pebble.addEventListener('ready',
             localStorage.setItem('clay-settings', JSON.stringify(claySettings));
         }
         else {
-            // if clay-settings already existed, this could be either:
-
-            // #1 (from above): An existing user running v1, updating to v2
-            //  -> this user will have an empty 'shell' of settings without any v2 keys (v1 had no settings keys)
-            //  -> apply v1 values to the v2 settings keys to match the original v1 display: F/MM-DD/no leading zeroes
-
-            // #3 (from above): An existing user who is already on v2
-            //  -> this user will have all the v2 keys saved.
-            //  -> don't change any settings.
-
+            // if clay-settings already existed, use them.
             claySettings = JSON.parse(claySettingsJSON);
-
-            // Check if the savedProfile does not include any v2 setting to identify v1 to v2 migration.
-            if (!claySettings.hasOwnProperty('TemperatureUnit')) {
-                console.log('V2 UPDATE detected! Existing user migrating from V1 to V2: assigning V1 settings...');
-                
-                // Programatically write v1 settings before the user opens them.
-                claySettings.DateFormat = "MMDD";
-                claySettings.LeadingZero = false;
-                claySettings.DisplaySecondsInterval = "0";
-                claySettings.TemperatureUnit = "F";
-                claySettings.WeatherUpdateInterval = "30";
-                claySettings.WeatherUpdateOnMotion = false;
-                claySettings.LeadingZeroXXS = false;
-                claySettings.VibrateOnMotion = false;
-
-                localStorage.setItem('clay-settings', JSON.stringify(claySettings));
-            }
-
-            // Send the settings message to the phone in EVERY case (because we set autoHandleEvents: off, we must handle sending this)
-            // Using a separate object because some fields types need to be converted.
-            var directWatchPayload = {
-                "DateFormat": claySettings.DateFormat, // keep as string
-                "LeadingZero": claySettings.LeadingZero ? 1 : 0, // convert bool to int
-                "DisplaySecondsInterval": parseInt(claySettings.DisplaySecondsInterval, 10), // convert numeric string to int
-                "TemperatureUnit": claySettings.TemperatureUnit, // keep as string
-                "WeatherUpdateInterval": parseInt(claySettings.WeatherUpdateInterval, 10), // convert numeric string to int
-                "WeatherUpdateOnMotion": claySettings.WeatherUpdateOnMotion ? 1 : 0, // convert bool to int
-                "LeadingZeroXXS": claySettings.LeadingZeroXXS ? 1 : 0, // convert bool to int
-                "VibrateOnMotion": claySettings.VibrateOnMotion ? 1: 0 // convert bool to int
-            };
-
-            Pebble.sendAppMessage(directWatchPayload);
-
-            // Get the initial weather
-            getWeather();
         }
+
+        // Send the settings message to the phone in EVERY case (because we set autoHandleEvents: off, we must handle sending this)
+        // Using a separate object because some fields types need to be converted.
+        var directWatchPayload = {
+            "DateFormat": claySettings.DateFormat, // keep as string
+            "LeadingZero": claySettings.LeadingZero ? 1 : 0, // convert bool to int
+            "DisplaySecondsInterval": parseInt(claySettings.DisplaySecondsInterval, 10), // convert numeric string to int
+            "TemperatureUnit": claySettings.TemperatureUnit, // keep as string
+            "WeatherUpdateInterval": parseInt(claySettings.WeatherUpdateInterval, 10), // convert numeric string to int
+            "WeatherUpdateOnMotion": claySettings.WeatherUpdateOnMotion ? 1 : 0, // convert bool to int
+            "LeadingZeroXXS": claySettings.LeadingZeroXXS ? 1 : 0, // convert bool to int
+            "VibrateOnMotion": claySettings.VibrateOnMotion ? 1: 0 // convert bool to int
+        };
+
+        Pebble.sendAppMessage(directWatchPayload);
+
+        // Get the initial weather
+        getWeather();
     }
 );
 
