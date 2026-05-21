@@ -1,3 +1,6 @@
+/**
+ * Defaults set for global users upon opening Settings page.
+ */
 module.exports = [
     {
         "type": "heading",
@@ -15,10 +18,10 @@ module.exports = [
                 "messageKey": "DateFormat",
                 "label": "Date format",
                 "options": [
-                    { "label": "Day-Month (DD-MM)", "value": "%d-%m" },
-                    { "label": "Month-Day (MM-DD)", "value": "%m-%d" }
+                    { "label": "Day-Month (DD-MM)", "value": "DDMM" },
+                    { "label": "Month-Day (MM-DD)", "value": "MMDD" }
                 ],
-                "defaultValue": "%d-%m"
+                "defaultValue": "DDMM"
             },
             {
                 "type": "toggle",
@@ -72,7 +75,9 @@ module.exports = [
                     { "label": "15 min", "value": "15" },
                     { "label": "30 min", "value": "30" },
                     { "label": "45 min", "value": "45" },
-                    { "label": "1 hour", "value": "60" }
+                    { "label": "1 hour", "value": "60" },
+                    { "label": "3 hours", "value": "180" },
+                    { "label": "6 hours", "value": "360" }
                 ],
                 "defaultValue": "30"
             },
@@ -89,7 +94,7 @@ module.exports = [
         "items": [
             {
                 "type": "heading",
-                "defaultValue": "Sunrise and Sunset"
+                "defaultValue": "Sunrise & Sunset"
             },
             {
                 "type": "toggle",

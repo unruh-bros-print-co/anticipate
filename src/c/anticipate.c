@@ -13,6 +13,7 @@ static bool s_seconds_within_display_interval = false;
 static bool s_hide_seconds_on_next_tick = false;
 static int s_last_min = -1;
 static int s_last_sec = -1;
+static bool s_settings_persisted;
 
 typedef struct {
     char TemperatureUnit[4];
@@ -27,11 +28,15 @@ typedef struct {
 
 static ClaySettings settings;
 
+/**
+ * @brief Set default hard-coded settings to be used as a fallback.
+ * Defaults to V1 style app so existing users won't experience a change.
+ */
 static void prv_default_settings() {
-  strncpy(settings.DateFormat, "%d-%m", sizeof(settings.DateFormat));
-  strncpy(settings.TemperatureUnit, "C", sizeof(settings.TemperatureUnit));
-  settings.LeadingZero = true;
-  settings.LeadingZeroXXS = true;
+  strncpy(settings.DateFormat, "MMDD", sizeof(settings.DateFormat));
+  settings.LeadingZero = false;
+  settings.LeadingZeroXXS = false;
+  strncpy(settings.TemperatureUnit, "F", sizeof(settings.TemperatureUnit));
   settings.WeatherUpdateInterval = DEFAULT_WEATHER_UPDATE_INTERVAL;
   settings.WeatherUpdateOnMotion = false;
   settings.DisplaySecondsInterval = 0;
@@ -42,9 +47,19 @@ static void prv_save_settings() {
   persist_write_data(SETTINGS_KEY, &settings, sizeof(settings));
 }
 
-static void prv_load_settings() {
+/**
+ * @brief function to load settings.
+ * @returns a boolean indicating whether the settings existed in storage.
+ */
+static bool prv_load_settings() {
   prv_default_settings();
-  persist_read_data(SETTINGS_KEY, &settings, sizeof(settings));
+
+  if (persist_exists(SETTINGS_KEY)) {
+    persist_read_data(SETTINGS_KEY, &settings, sizeof(settings));
+    return true;
+  }
+
+  return false;
 }
 
 // Define constants
@@ -347,8 +362,8 @@ static bool is_night() {
  */
 static void layer_date_update_proc(Layer *layer, GContext *ctx) {
   
-  static char date_str[] = "xx-xx";
-  strftime(date_str, sizeof(date_str), settings.DateFormat, &s_current_time);
+  static char date_str[6];
+  strftime(date_str, sizeof(date_str), (strcmp(settings.DateFormat, "MMDD") == 0) ? "%m-%d" : "%d-%m", &s_current_time);
   
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
   GRect bounds = layer_get_bounds(layer);
@@ -887,7 +902,11 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
     // Request weather info at chosen interval, or within 2 minutes after midnight
     if ((settings.WeatherUpdateInterval > 0 && tick_time->tm_min % settings.WeatherUpdateInterval == 0) || (current_seconds >= midnight_today_seconds && current_seconds <= (midnight_today_seconds + 120))) {
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Weather update interval triggered at [%d] minute mark!", settings.WeatherUpdateInterval);
-      request_weather();
+      if (s_settings_persisted) {
+        // Only request weather if settings (including desired Temperature Units) are configured.
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Not requesting weather data until settings are saved.", settings.WeatherUpdateInterval);
+        request_weather();
+      }
     }
 
     // If it's within 2 minutes after sunrise or sunset, call update_conditions() to transition sun/moon icons.
@@ -957,7 +976,10 @@ static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
       }
 
       if (settings.WeatherUpdateOnMotion) {
-        request_weather();
+        if (s_settings_persisted) {
+          // Only request weather if settings (including desired Temperature Units) are configured.
+          request_weather();
+        }
       }
     }
 }
@@ -1203,7 +1225,6 @@ static void main_window_load(Window *window) {
   s_bitmap_layer_conditions = bitmap_layer_create(GRect(UI_CONDITIONS_X, UI_CONDITIONS_Y, UI_CONDITIONS_W, UI_CONDITIONS_H));
   bitmap_layer_set_background_color(s_bitmap_layer_conditions, GColorClear);
   
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Test Log Message ***");
   // Target the "Advanced" graphics engine (Diorite/Time/Round)
   #if defined(PBL_SDK_3) || defined(PBL_COLOR) || defined(PBL_PLATFORM_DIORITE)
   bitmap_layer_set_compositing_mode(s_bitmap_layer_conditions, GCompOpSet);
@@ -1217,7 +1238,12 @@ static void main_window_load(Window *window) {
   layer_set_update_proc(s_layer_sunrise_sunset, layer_sunrise_sunset_update_proc);
   layer_add_child(s_container_layer, s_layer_sunrise_sunset);
 
-  prv_update_display(); // Update any layers that will be effected by settings.
+  prv_update_display(); // Update any layers that will be affected by settings.
+  
+  if (s_settings_persisted) {
+    // Only request weather if settings (including desired Temperature Units) are configured.
+    request_weather();
+  }
 }
 
 /**
@@ -1381,6 +1407,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   // Save settings if any changed.
   if (temp_unit_t || date_format_t || leading_zero_t || leading_zero_xxs_t || weather_update_interval_t || weather_update_on_motion_t || display_seconds_interval_t || vibrate_on_motion_t) {
     prv_save_settings();
+    s_settings_persisted = true;
   }
 
   // Save and apply display-related settings if any were changed
@@ -1390,6 +1417,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 
     // Refetch the weather if the temperature unit changed
     if (temp_unit_t) {
+      // s_settings_persisted is true, so make request
       request_weather();
     }
   }
@@ -1425,7 +1453,7 @@ static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
  * @brief Function to initialize the application
  */
 static void init() {
-  prv_load_settings();
+  s_settings_persisted = prv_load_settings();
 
   s_main_window = window_create();
 

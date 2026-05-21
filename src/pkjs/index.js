@@ -1,6 +1,6 @@
 var Clay = require('@rebble/clay');
 var clayConfig = require('./config');
-var clay = new Clay(clayConfig);
+var clay = new Clay(clayConfig, null, { autoHandleEvents: false }); // Define our own event handlers.
 
 var xhrRequest = function (url, type, callback) {
     var xhr = new XMLHttpRequest();
@@ -188,15 +188,135 @@ function getWeather() {
     );
 }
 
-// Listen for when the watchface is opened
+/**
+ * This listener will help handle the install of v2 for the 3 scenarios.
+ * #1 Existing users migrating from v1 to v2
+ *      -> lock in settings that match v1 (Fahrenheit, MM-DD, No Leading Zeros)
+ * 
+ * #2 New users installing v2 for the first time
+ *      -> default the settings to the user's locale.
+ * 
+ * #3 This method is also called for up-to-date v2 users when the app starts.
+ *      -> don't change any settings.
+ */
 Pebble.addEventListener('ready',
     function(e) {
         console.log('PebbleKit JS ready!');
 
-        // Get the initial weather
-        getWeather();
+        var claySettingsJSON = localStorage.getItem('clay-settings');
+        var claySettings = null;
+        
+        // #2 New user installing v2: No 'clay-settings' found on phone.
+        //      -> Default the settings to the user's locale.
+        if (claySettingsJSON === null) {
+            console.log('V2 INSTALL detected! New user installing V2: assigning locale-based settings...');
+
+            var locale = (navigator.language || 'en-US').toLowerCase();
+            
+            // =-=--= TESTING ONLY =-=-=-
+            locale = 'en-us'; // TODO temporary! remove after testing!
+            // =-=-=-=-=-=-=-=-=-=-=-=-=-
+
+            var fahrenheitCountries = ['-us', '-bs', '-ky', '-lr', '-pw', '-mh', '-fm'];
+            var mmddCountries = ['-us', '-ca', '-ph', '-bz'];
+
+            var useFahrenheit = fahrenheitCountries.some(function(suffix) {
+                return locale.endsWith(suffix);
+            });
+
+            var useMMDD = mmddCountries.some(function(suffix) {
+                return locale.endsWith(suffix);
+            });
+
+            // Logs for debugging purposes
+            console.log("=============================================");
+            console.log("V2 BOOTSTRAP LOG");
+            console.log("Detected Phone Locale: " + locale);
+            console.log("Matches Fahrenheit Country? " + (useFahrenheit ? "YES (F)" : "NO (C)"));
+            console.log("Matches MM-DD Country?       " + (useMMDD ? "YES (MM-DD)" : "NO (DD-MM)"));
+            console.log("=============================================");
+
+            // Programatically write locale-based settings before the user opens them.
+            claySettings = {
+                "DateFormat": useMMDD ? "MMDD" : "DDMM",
+                "LeadingZero": true,
+                "DisplaySecondsInterval": "0",
+                "TemperatureUnit": useFahrenheit ? "F" : "C",
+                "WeatherUpdateInterval": "30",
+                "WeatherUpdateOnMotion": false,
+                "LeadingZeroXXS": true,
+                "VibrateOnMotion": false
+            };
+
+            // Set these locale-based default settings to the localStorage on the phone.
+            localStorage.setItem('clay-settings', JSON.stringify(claySettings));
+        }
+        else {
+            // if clay-settings already existed, this could be either:
+
+            // #1 (from above): An existing user running v1, updating to v2
+            //  -> this user will have an empty 'shell' of settings without any v2 keys (v1 had no settings keys)
+            //  -> apply v1 values to the v2 settings keys to match the original v1 display: F/MM-DD/no leading zeroes
+
+            // #3 (from above): An existing user who is already on v2
+            //  -> this user will have all the v2 keys saved.
+            //  -> don't change any settings.
+
+            claySettings = JSON.parse(claySettingsJSON);
+
+            // Check if the savedProfile does not include any v2 setting to identify v1 to v2 migration.
+            if (!claySettings.hasOwnProperty('TemperatureUnit')) {
+                console.log('V2 UPDATE detected! Existing user migrating from V1 to V2: assigning V1 settings...');
+                
+                // Programatically write v1 settings before the user opens them.
+                claySettings.DateFormat = "MMDD";
+                claySettings.LeadingZero = false;
+                claySettings.DisplaySecondsInterval = "0";
+                claySettings.TemperatureUnit = "F";
+                claySettings.WeatherUpdateInterval = "30";
+                claySettings.WeatherUpdateOnMotion = false;
+                claySettings.LeadingZeroXXS = false;
+                claySettings.VibrateOnMotion = false;
+
+                localStorage.setItem('clay-settings', JSON.stringify(claySettings));
+            }
+
+            // Send the settings message to the phone in EVERY case (because we set autoHandleEvents: off, we must handle sending this)
+            // Using a separate object because some fields types need to be converted.
+            var directWatchPayload = {
+                "DateFormat": claySettings.DateFormat, // keep as string
+                "LeadingZero": claySettings.LeadingZero ? 1 : 0, // convert bool to int
+                "DisplaySecondsInterval": parseInt(claySettings.DisplaySecondsInterval, 10), // convert numeric string to int
+                "TemperatureUnit": claySettings.TemperatureUnit, // keep as string
+                "WeatherUpdateInterval": parseInt(claySettings.WeatherUpdateInterval, 10), // convert numeric string to int
+                "WeatherUpdateOnMotion": claySettings.WeatherUpdateOnMotion ? 1 : 0, // convert bool to int
+                "LeadingZeroXXS": claySettings.LeadingZeroXXS ? 1 : 0, // convert bool to int
+                "VibrateOnMotion": claySettings.VibrateOnMotion ? 1: 0 // convert bool to int
+            };
+
+            Pebble.sendAppMessage(directWatchPayload);
+
+            // Get the initial weather
+            getWeather();
+        }
     }
 );
+
+// Open the settings web view
+Pebble.addEventListener('showConfiguration', function(e) {
+  Pebble.openURL(clay.generateUrl());
+});
+
+// Save the manual webview selectiosn
+Pebble.addEventListener('webviewclosed', function(e) {
+  if (e && e.response) {
+    // Update Clay with the selection payload returned from the browser
+    clay.getSettings(e.response);
+    
+    // Transmit final choices down to the watch C app
+    Pebble.sendAppMessage(clay.getAppMessageKeys());
+  }
+});
 
 // Listen for when an AppMessage is received
 Pebble.addEventListener('appmessage',
