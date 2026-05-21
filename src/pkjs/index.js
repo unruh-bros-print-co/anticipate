@@ -201,10 +201,6 @@ Pebble.addEventListener('ready',
             console.log('V2 INSTALL detected! Assigning locale-based settings defaults...');
 
             var locale = (navigator.language || 'en-US').toLowerCase();
-            
-            // =-=--= TESTING ONLY =-=-=-
-            locale = 'en-us'; // TODO temporary! remove after testing!
-            // =-=-=-=-=-=-=-=-=-=-=-=-=-
 
             var fahrenheitCountries = ['-us', '-bs', '-ky', '-lr', '-pw', '-mh', '-fm'];
             var mmddCountries = ['-us', '-ca', '-ph', '-bz'];
