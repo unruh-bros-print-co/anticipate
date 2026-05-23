@@ -900,7 +900,8 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
     update_sun_index(tick_time);
     update_steps();
     // Request weather info at chosen interval, or within 2 minutes after midnight
-    if ((settings.WeatherUpdateInterval > 0 && tick_time->tm_min % settings.WeatherUpdateInterval == 0) || (current_seconds >= midnight_today_seconds && current_seconds <= (midnight_today_seconds + 120))) {
+    int total_minutes_today = (tick_time->tm_hour * 60) + tick_time->tm_min;
+    if ((settings.WeatherUpdateInterval > 0 && total_minutes_today % settings.WeatherUpdateInterval == 0) || (current_seconds >= midnight_today_seconds && current_seconds <= (midnight_today_seconds + 120))) {
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Weather update interval triggered at [%d] minute mark!", settings.WeatherUpdateInterval);
       if (s_settings_persisted) {
         // Only request weather if settings (including desired Temperature Units) are configured.
