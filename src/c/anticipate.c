@@ -33,10 +33,10 @@ static ClaySettings settings;
  * Defaults to V1 style app so existing users won't experience a change.
  */
 static void prv_default_settings() {
-  strncpy(settings.DateFormat, "MMDD", sizeof(settings.DateFormat));
-  settings.LeadingZero = false;
-  settings.LeadingZeroXXS = false;
-  strncpy(settings.TemperatureUnit, "F", sizeof(settings.TemperatureUnit));
+  strncpy(settings.DateFormat, "DDMM", sizeof(settings.DateFormat));
+  settings.LeadingZero = true;
+  settings.LeadingZeroXXS = true;
+  strncpy(settings.TemperatureUnit, "C", sizeof(settings.TemperatureUnit));
   settings.WeatherUpdateInterval = DEFAULT_WEATHER_UPDATE_INTERVAL;
   settings.WeatherUpdateOnMotion = false;
   settings.DisplaySecondsInterval = 0;
@@ -1366,42 +1366,52 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   Tuple *temp_unit_t = dict_find(iterator, MESSAGE_KEY_TemperatureUnit);
   if (temp_unit_t) {
     strncpy(settings.TemperatureUnit, temp_unit_t->value->cstring, sizeof(settings.TemperatureUnit));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTINGS message received: settings.TemperatureUnit: %s", settings.TemperatureUnit);
   }
   Tuple *date_format_t = dict_find(iterator, MESSAGE_KEY_DateFormat);
   if (date_format_t) {
     strncpy(settings.DateFormat, date_format_t->value->cstring, sizeof(settings.DateFormat));    
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTINGS message received: settings.DateFormat: %s", settings.DateFormat);
   }
   Tuple *leading_zero_t = dict_find(iterator, MESSAGE_KEY_LeadingZero);
   if (leading_zero_t) {
     settings.LeadingZero = (leading_zero_t->value->int32 == 1);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTINGS message received: settings.LeadingZero: %d", settings.LeadingZero);
   }
   Tuple *leading_zero_xxs_t = dict_find(iterator, MESSAGE_KEY_LeadingZeroXXS);
   if (leading_zero_xxs_t) {
     settings.LeadingZeroXXS = (leading_zero_xxs_t->value->int32 == 1);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTINGS message received: settings.LeadingZeroXXS: %d", settings.LeadingZeroXXS);
   }
   Tuple *weather_update_interval_t = dict_find(iterator, MESSAGE_KEY_WeatherUpdateInterval);
   if (weather_update_interval_t) {
     settings.WeatherUpdateInterval = atoi(weather_update_interval_t->value->cstring);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTINGS message received: settings.WeatherUpdateInterval: %d", settings.WeatherUpdateInterval);
      // Safety: Prevent division by zero if the weather_update_interval string was empty/invalid
     if (settings.WeatherUpdateInterval <= 0) {
       settings.WeatherUpdateInterval = DEFAULT_WEATHER_UPDATE_INTERVAL;
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "WARNING: Received INVALID settings.WeatherUpdateInterval >= 0. Setting to: %d", settings.WeatherUpdateInterval);
     }
   }
   Tuple *weather_update_on_motion_t = dict_find(iterator, MESSAGE_KEY_WeatherUpdateOnMotion);
   if (weather_update_on_motion_t) {
     settings.WeatherUpdateOnMotion = (weather_update_on_motion_t->value->int32 == 1);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTINGS message received: settings.WeatherUpdateOnMotion: %d", settings.WeatherUpdateOnMotion);
   }
   Tuple *display_seconds_interval_t = dict_find(iterator, MESSAGE_KEY_DisplaySecondsInterval);
   if (display_seconds_interval_t) {
     settings.DisplaySecondsInterval = atoi(display_seconds_interval_t->value->cstring);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTINGS message received: settings.DisplaySecondsInterval: %d", settings.DisplaySecondsInterval);
     // Safety: Turn off if DisplaySecondsInterval is invalid
     if (settings.DisplaySecondsInterval < 0 || settings.DisplaySecondsInterval > DISPLAY_SECONDS_MAX_INTERVAL) {
       settings.DisplaySecondsInterval = 0;
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "WARNING: Received INVALID settings.DisplaySecondsInterval (<0 || >%d). Setting to: %d", DISPLAY_SECONDS_MAX_INTERVAL, settings.DisplaySecondsInterval);
     }
   }
   Tuple *vibrate_on_motion_t = dict_find(iterator, MESSAGE_KEY_VibrateOnMotion);
   if (vibrate_on_motion_t) {
     settings.VibrateOnMotion = (vibrate_on_motion_t->value->int32 == 1);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTINGS message received: settings.VibrateOnMotion: %d", settings.VibrateOnMotion);
   }
 
   // Save settings if any changed.

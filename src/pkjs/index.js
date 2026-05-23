@@ -1,6 +1,6 @@
 var Clay = require('@rebble/clay');
 var clayConfig = require('./config');
-var clay = new Clay(clayConfig, null, { autoHandleEvents: false }); // Define our own event handlers.
+var clay = new Clay(clayConfig);
 
 var xhrRequest = function (url, type, callback) {
     var xhr = new XMLHttpRequest();
@@ -237,7 +237,7 @@ Pebble.addEventListener('ready',
             localStorage.setItem('clay-settings', JSON.stringify(claySettings));
         }
         else {
-            // if clay-settings already existed, use them.
+            console.log('V2 RETURNING USER detected! Loading saved profile choices');
             claySettings = JSON.parse(claySettingsJSON);
         }
 
@@ -246,9 +246,9 @@ Pebble.addEventListener('ready',
         var directWatchPayload = {
             "DateFormat": claySettings.DateFormat, // keep as string
             "LeadingZero": claySettings.LeadingZero ? 1 : 0, // convert bool to int
-            "DisplaySecondsInterval": parseInt(claySettings.DisplaySecondsInterval, 10), // convert numeric string to int
+            "DisplaySecondsInterval": claySettings.DisplaySecondsInterval, // keep as string
             "TemperatureUnit": claySettings.TemperatureUnit, // keep as string
-            "WeatherUpdateInterval": parseInt(claySettings.WeatherUpdateInterval, 10), // convert numeric string to int
+            "WeatherUpdateInterval": claySettings.WeatherUpdateInterval, // keep as string
             "WeatherUpdateOnMotion": claySettings.WeatherUpdateOnMotion ? 1 : 0, // convert bool to int
             "LeadingZeroXXS": claySettings.LeadingZeroXXS ? 1 : 0, // convert bool to int
             "VibrateOnMotion": claySettings.VibrateOnMotion ? 1: 0 // convert bool to int
@@ -260,22 +260,6 @@ Pebble.addEventListener('ready',
         getWeather();
     }
 );
-
-// Open the settings web view
-Pebble.addEventListener('showConfiguration', function(e) {
-  Pebble.openURL(clay.generateUrl());
-});
-
-// Save the manual webview selectiosn
-Pebble.addEventListener('webviewclosed', function(e) {
-  if (e && e.response) {
-    // Update Clay with the selection payload returned from the browser
-    clay.getSettings(e.response);
-    
-    // Transmit final choices down to the watch C app
-    Pebble.sendAppMessage(clay.getAppMessageKeys());
-  }
-});
 
 // Listen for when an AppMessage is received
 Pebble.addEventListener('appmessage',
