@@ -1000,8 +1000,14 @@ static void update_service_subscriptions() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Accel subscribed");
   }
 
+  if (settings.VibrateOnMotion && !s_is_accel_subscribed) {
+    accel_tap_service_subscribe(accel_tap_handler);
+    s_is_accel_subscribed = true;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Accel subscribed");
+  }
+
   // If all the shake settings are turned off (check them all in this if-statement), and the accelerometer handler is subscribed, unsubscribe it.
-  if (!settings.WeatherUpdateOnMotion && (settings.DisplaySecondsInterval <= 1) && s_is_accel_subscribed) {
+  if (!settings.WeatherUpdateOnMotion && (settings.DisplaySecondsInterval <= 1) && !settings.VibrateOnMotion && s_is_accel_subscribed) {
     accel_tap_service_unsubscribe();
     s_is_accel_subscribed = false;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Accel unsubscribed");
