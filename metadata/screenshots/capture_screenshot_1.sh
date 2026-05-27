@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Before running:
+
+# These are set automatically by the script:
+# Date: Current Date? Hopefully something without a '1'
+# Time: 20:35 (24h)
+# Time Format: 24h (Set by this script)
+
+# Make these manual changes:
+# anticipate.c:
+    # Steps: 8527
+    # Conditions: 'RAIN'
+# index.js:
+    # Temp High: 25 C (use F to convert)
+    # Temp Current: 23 C (use F to convert)
+    # Temp Low: 17 C (use F to convert)
+    # "DateFormat": "MMDD",
+    # "DisplaySecondsInterval": "0",
+    # "TemperatureUnit": "F",
+
+# Run "pebble build"
+
+echo "Preparing Screenshot for platform:[$1]..."
+
+# Kill any running emulators
+pebble kill
+
+# Set to just before desired time to capture correct second.
+faketime '2026-05-26 20:35:00' pebble install --emulator $1
+# pebble install --emulator $1
+
+# Some emulators use this command to set the time.
+# pebble emu-set-time 12:33:40
+
+# pebble install --emulator basalt
+pebble emu-time-format --format 24h
+
+# Use this command if the emulator is showing in UTC time.
+pebble emu-set-time 15:35:00 && pebble screenshot ${1}_1.png
