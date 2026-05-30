@@ -1,4 +1,4 @@
-![Anticipate](metadata/banner-dark-align-face-flat.png)
+![Anticipate](metadata/banner-img-dark-align-face-flat.png)
 
 A clean, high-contrast Pebble watchface. Live in the moment while anticpating good times ahead.
 
