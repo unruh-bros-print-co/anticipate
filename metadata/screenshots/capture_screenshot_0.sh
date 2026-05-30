@@ -26,8 +26,12 @@ echo "Preparing Screenshot for platform:[$1]..."
 # Kill any running emulators
 pebble kill
 
+# Buid any changes
+pebble build
+
 # Set to just before desired time to capture correct second.
-faketime '2026-05-26 12:33:40' pebble install --emulator $1
+# --> Update the Date to the current day!
+faketime '2026-05-30 12:33:40' pebble install --emulator $1
 # pebble install --emulator $1
 
 # Some emulators use this command to set the time.
@@ -38,3 +42,5 @@ pebble emu-time-format --format 12h
 
 # Use this command if the emulator is showing in UTC time.
 pebble emu-set-time 07:34:00 && pebble screenshot ${1}_0.png
+
+# Troubleshooting note: if app install gets stuck, try 'pebble wipe' before running this script.
