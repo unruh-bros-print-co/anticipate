@@ -1,40 +1,51 @@
-![Anticipate](metadata/banner-img-dark-align-face-flat.png)
+![Anticipate](metadata/banner/banner-img-dark-align-face-flat.png)
 
-A clean, high-contrast Pebble watchface. Live in the moment while anticpating good times ahead.
+## Description
 
-## Features 
+There's a time for everything! Here's a clean yet informative watch face that finds a balance between being present and being prepared.
+
+Live in the moment while you anticipate the day ahead!
+
+Ecclesiastes 3:1-8
+
+## Features
+
 - Today's date
-- Step Count
-- Temperature (High)
-- Temperature (Current)
-- Temperature (Low)
+- Step count
+- Temperature (high)
+- Temperature (current)
+- Temperature (low)
 - Current weather conditions
 - Day/night timeline
-  - Sunrise and Sunset
+  - Sunrise/sunset
   - Day/night
   - Current moment of day
-- 12 and 24h support
+- 12h and 24h time format support
+- Seconds display
 
 ## Settings Options
+
 - Date format (DD-MM or MM-DD)
-- Leading zero on main display (show or hide)
-- Leading zero on sunrise/sunset display (show or hide)
-- Display seconds (off, on, or on motion)
+- Leading zero on main time (show or hide)
+- Seconds display (off, on, or temporary on motion)
 - Temperature unit (Celsius or Fahrenheit)
-- Weather data update interval (select interval)
-- Weather data update on motion (on or off)
-- Vibrate to acknowledge motion (on or off)
+- Update weather data interval
+- Update weather data on motion toggle
+- Leading zero on sunrise/sunset time labels (show or hide)
+- Vibrate on motion toggle
 
 Weather data by Open-Meteo
 
 ## Supported Platforms
-  - basalt
-  - diorite
-  - flint
-  - emery
-  - gabbro
+
+- basalt
+- diorite
+- flint
+- emery
+- gabbro
 
 ## Installation
+
 1. Ensure the Pebble SDK is installed.
 2. Run `pebble build`.
 3. Run `pebble install --emulator {platform-name}`.
