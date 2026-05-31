@@ -1,3 +1,7 @@
+var Clay = require('@rebble/clay');
+var clayConfig = require('./config');
+var clay = new Clay(clayConfig);
+
 var xhrRequest = function (url, type, callback) {
     var xhr = new XMLHttpRequest();
     xhr.onload = function () {
@@ -15,7 +19,6 @@ function locationSuccess(pos) {
     '&current=temperature_2m,is_day,weather_code' +
     '&timezone=auto' +
     '&forecast_days=1' +
-    '&temperature_unit=fahrenheit' +
     '&timeformat=unixtime';
 
     xhrRequest(url, 'GET',
@@ -185,10 +188,73 @@ function getWeather() {
     );
 }
 
-// Listen for when the watchface is opened
 Pebble.addEventListener('ready',
     function(e) {
         console.log('PebbleKit JS ready!');
+
+        var claySettingsJSON = localStorage.getItem('clay-settings');
+        var claySettings = null;
+        
+        // Fresh install: No 'clay-settings' found on phone.
+        //      -> Set initial settings defaults based on the user's locale.
+        if (claySettingsJSON === null) {
+            console.log('V2 INSTALL detected! Assigning locale-based settings defaults...');
+
+            var locale = (navigator.language || 'en-US').toLowerCase();
+
+            var fahrenheitCountries = ['-us', '-bs', '-ky', '-lr', '-pw', '-mh', '-fm'];
+            var mmddCountries = ['-us', '-ca', '-ph', '-bz'];
+
+            var useFahrenheit = fahrenheitCountries.some(function(suffix) {
+                return locale.endsWith(suffix);
+            });
+
+            var useMMDD = mmddCountries.some(function(suffix) {
+                return locale.endsWith(suffix);
+            });
+
+            // Logs for debugging purposes
+            console.log("=============================================");
+            console.log("V2 BOOTSTRAP LOG");
+            console.log("Detected Phone Locale: " + locale);
+            console.log("Matches Fahrenheit Country? " + (useFahrenheit ? "YES (F)" : "NO (C)"));
+            console.log("Matches MM-DD Country?       " + (useMMDD ? "YES (MM-DD)" : "NO (DD-MM)"));
+            console.log("=============================================");
+
+            // Programatically write locale-based settings before the user opens them.
+            claySettings = {
+                "DateFormat": useMMDD ? "MMDD" : "DDMM",
+                "LeadingZero": true,
+                "DisplaySecondsInterval": "0",
+                "TemperatureUnit": useFahrenheit ? "F" : "C",
+                "WeatherUpdateInterval": "30",
+                "WeatherUpdateOnMotion": false,
+                "LeadingZeroXXS": true,
+                "VibrateOnMotion": false
+            };
+
+            // Set these locale-based default settings to the localStorage on the phone.
+            localStorage.setItem('clay-settings', JSON.stringify(claySettings));
+        }
+        else {
+            console.log('V2 RETURNING USER detected! Loading saved profile choices');
+            claySettings = JSON.parse(claySettingsJSON);
+        }
+
+        // Send the settings message to the phone in EVERY case to pass settings to watch.
+        // Using a separate object because some fields types need to be converted.
+        var directWatchPayload = {
+            "DateFormat": claySettings.DateFormat, // keep as string
+            "LeadingZero": claySettings.LeadingZero ? 1 : 0, // convert bool to int
+            "DisplaySecondsInterval": claySettings.DisplaySecondsInterval, // keep as string
+            "TemperatureUnit": claySettings.TemperatureUnit, // keep as string
+            "WeatherUpdateInterval": claySettings.WeatherUpdateInterval, // keep as string
+            "WeatherUpdateOnMotion": claySettings.WeatherUpdateOnMotion ? 1 : 0, // convert bool to int
+            "LeadingZeroXXS": claySettings.LeadingZeroXXS ? 1 : 0, // convert bool to int
+            "VibrateOnMotion": claySettings.VibrateOnMotion ? 1: 0 // convert bool to int
+        };
+
+        Pebble.sendAppMessage(directWatchPayload);
 
         // Get the initial weather
         getWeather();
@@ -199,6 +265,8 @@ Pebble.addEventListener('ready',
 Pebble.addEventListener('appmessage',
     function(e) {
         console.log('AppMessage received!');
-        getWeather();
+        if (e.payload['REQUEST_WEATHER']) {
+            getWeather();
+        }
     }
 );

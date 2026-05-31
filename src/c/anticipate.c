@@ -2,7 +2,69 @@
 #include <math.h>
 #include "bitmap_info.h"
 
-// (L)arge number placement & dimensions
+// Settings
+#define SETTINGS_KEY 1
+#define DEFAULT_WEATHER_UPDATE_INTERVAL 30
+#define DISPLAY_SECONDS_MAX_INTERVAL 60
+
+static bool s_is_accel_subscribed = false;
+static AppTimer *s_seconds_timer = NULL;
+static bool s_seconds_within_display_interval = false;
+static bool s_hide_seconds_on_next_tick = false;
+static int s_last_min = -1;
+static int s_last_sec = -1;
+static bool s_settings_persisted;
+
+typedef struct {
+    char TemperatureUnit[4];
+    char DateFormat[8];
+    bool LeadingZero;
+    bool LeadingZeroXXS;
+    int WeatherUpdateInterval;
+    bool WeatherUpdateOnMotion;
+    int DisplaySecondsInterval;
+    bool VibrateOnMotion;
+} ClaySettings;
+
+static ClaySettings settings;
+
+/**
+ * @brief Set default hard-coded settings to be used as a fallback.
+ * Defaults to V1 style app so existing users won't experience a change.
+ */
+static void prv_default_settings() {
+  strncpy(settings.DateFormat, "DDMM", sizeof(settings.DateFormat));
+  settings.LeadingZero = true;
+  settings.LeadingZeroXXS = true;
+  strncpy(settings.TemperatureUnit, "C", sizeof(settings.TemperatureUnit));
+  settings.WeatherUpdateInterval = DEFAULT_WEATHER_UPDATE_INTERVAL;
+  settings.WeatherUpdateOnMotion = false;
+  settings.DisplaySecondsInterval = 0;
+  settings.VibrateOnMotion = false;
+}
+
+static void prv_save_settings() {
+  persist_write_data(SETTINGS_KEY, &settings, sizeof(settings));
+}
+
+/**
+ * @brief function to load settings.
+ * @returns a boolean indicating whether the settings existed in storage.
+ */
+static bool prv_load_settings() {
+  prv_default_settings();
+
+  if (persist_exists(SETTINGS_KEY)) {
+    persist_read_data(SETTINGS_KEY, &settings, sizeof(settings));
+    return true;
+  }
+
+  return false;
+}
+
+// Define constants
+
+// (L)arge number dimensions & time UI placement
 static const uint16_t L_TENS_X = 44;
 static const uint16_t L_TENS_X_OFFSET = 17;
 static const uint16_t L_ONES_X = 94;
@@ -11,7 +73,7 @@ static const uint16_t L_MINUTES_Y = 79;
 static const uint16_t L_WIDTH = 46; 
 static const uint16_t L_HEIGHT = 71;
 
-// (S)mall number placement & dimensions
+// (S)mall number dimensions
 static const uint16_t S_WIDTH = 8;
 static const uint16_t S_WIDTH_1 = 5;
 static const uint16_t S_WIDTH_DASH = 4;
@@ -19,13 +81,13 @@ static const uint16_t S_WIDTH_DEGREE = 4;
 static const uint16_t S_WIDTH_LOADING = 4;
 static const uint16_t S_HEIGHT = 13;
 
-// E(x)tra (S)mall number placement & dimensions
+// E(x)tra (S)mall number dimensions
 static const uint16_t XS_WIDTH = 6;
 static const uint16_t XS_WIDTH_1 = 4;
 static const uint16_t XS_WIDTH_DASH = 4;
 static const uint16_t XS_HEIGHT = 10;
 
-// E(x)tra E(x)tra (S)mall number placement & dimensions
+// E(x)tra E(x)tra (S)mall number dimensions
 static const uint16_t XXS_WIDTH = 3;
 static const uint16_t XXS_WIDTH_1 = 2;
 static const uint16_t XXS_WIDTH_COLON = 1;
@@ -38,6 +100,13 @@ static const uint16_t INDEX_LOADING = 12; // '...'
 static const uint16_t INDEX_COLON = 13; // ':'
 
 // =-=-=- UI element placement & dimensions =-=-=-
+
+// Seconds: placement & dimensions
+static const uint16_t UI_SECONDS_X = 121;
+static const uint16_t UI_SECONDS_Y = 135;
+static const uint16_t UI_SECONDS_W = 17;
+static const uint16_t UI_SECONDS_H = 13;
+static const uint16_t UI_SECONDS_SPACING = 1;
 
 // Date: placement & dimensions
 static const uint16_t UI_DATE_X = 4;
@@ -84,20 +153,22 @@ static const uint16_t UI_CONDITIONS_Y = 128;
 static const uint16_t UI_CONDITIONS_W = 36;
 static const uint16_t UI_CONDITIONS_H = 36;
 
-// Sunlight Labels: placement & dimensions
-static const uint16_t UI_SUNLIGHT_LABELS_X = 44;
-static const uint16_t UI_SUNLIGHT_LABELS_Y = 154;
-static const uint16_t UI_SUNLIGHT_LABELS_W = 96;
-static const uint16_t UI_SUNLIGHT_LABELS_H = 4;
-static const uint16_t UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL = 1;
-static const uint16_t UI_SUNLIGHT_LABELS_SEPARATION = 2;
-
 // Sunrise / Sunset Display: placement & dimensions
 static const uint16_t UI_SUNRISE_SUNSET_X = 44;
-static const uint16_t UI_SUNRISE_SUNSET_Y = 160;
+static const uint16_t UI_SUNRISE_SUNSET_Y = 154;
 static const uint16_t UI_SUNRISE_SUNSET_W = 96;
-static const uint16_t UI_SUNRISE_SUNSET_H = 4;
-static const uint16_t UI_SUNRISE_SUNSET_SPACE_HORIZONTAL = 4;
+static const uint16_t UI_SUNRISE_SUNSET_H = 10;
+static const uint16_t UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W = 19;
+static const uint16_t UI_SUNRISE_SUNSET_LOAD_BOX_MIDDLE_W = 50;
+static const uint16_t UI_SUNRISE_SUNSET_LOAD_BOX_LABEL_W = 17;
+static const uint16_t UI_SUNRISE_SUNSET_LOAD_BOX_LABEL_2_OFFSET = 33;
+static const uint16_t UI_SUNRISE_SUNSET_LOAD_BOX_SPACE_HORIZONTAL = 4;
+static const uint16_t UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL = 1;
+static const uint16_t UI_SUNLIGHT_LABELS_SEPARATION = 2;
+static const uint16_t UI_SUNLIGHT_LABELS_H = 4;
+static const uint16_t UI_SUNRISE_SUNSET_BARS_Y = 6;
+static const uint16_t UI_SUNRISE_SUNSET_BARS_H = 4;
+static const uint16_t UI_SUNRISE_SUNSET_BARS_SPACE_HORIZONTAL = 4;
 
 // UI: Sun Index / Marker
 static const int SUN_INDEX_START_X = 45;
@@ -138,8 +209,8 @@ static Layer *s_layer_steps;
 static Layer *s_layer_temp_high;
 static Layer *s_layer_temp_current;
 static Layer *s_layer_temp_low;
-static Layer *s_layer_sunlight_labels;
-static Layer *s_layer_sunrise_sunset_bars;
+static Layer *s_layer_sunrise_sunset;
+static Layer *s_layer_seconds;
 
 // Conditions GBitmap and BitmapLayer
 static GBitmap *s_bitmap_conditions[10];
@@ -149,11 +220,12 @@ static BitmapLayer *s_bitmap_layer_conditions;
 static struct tm s_current_time;
 static int s_current_steps = 0;
 static bool s_temp_high_loading = true;
-static int s_temp_high = 0;
+static int s_temp_high_c = 0;
 static bool s_temp_current_loading = true;
-static int s_temp_current = 0;
+static int s_temp_current_c = 0;
 static bool s_temp_low_loading = true;
-static int s_temp_low = 0;
+static int s_temp_low_c = 0;
+static bool s_sunrise_sunset_loading = true;
 static long s_sunrise_seconds = 0;
 static long s_sunset_seconds = 0;
 static char s_condition[50];
@@ -290,8 +362,8 @@ static bool is_night() {
  */
 static void layer_date_update_proc(Layer *layer, GContext *ctx) {
   
-  static char date_str[] = "MM-DD";
-  strftime(date_str, sizeof(date_str), "%m-%d", &s_current_time);
+  static char date_str[6];
+  strftime(date_str, sizeof(date_str), (strcmp(settings.DateFormat, "MMDD") == 0) ? "%m-%d" : "%d-%m", &s_current_time);
   
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
   GRect bounds = layer_get_bounds(layer);
@@ -302,6 +374,30 @@ static void layer_date_update_proc(Layer *layer, GContext *ctx) {
   int starting_x = (layer_width - date_width) / 2;
 
   draw_string(ctx, date_str, starting_x, UI_DATE_CONTENT_Y, s_bitmap_numbers_xs_light, UI_DATE_SPACING);
+}
+
+/**
+ * @brief Seconds: layer_update_proc
+ */
+static void layer_seconds_update_proc(Layer *layer, GContext *ctx) {
+  static char seconds_str[] = "00";
+  strftime(seconds_str, sizeof(seconds_str), "%S", &s_current_time);
+
+  graphics_context_set_compositing_mode(ctx, GCompOpSet);
+
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "About to draw seconds:[%s]", seconds_str);
+
+  int seconds_width = calculate_string_width_px(seconds_str, s_bitmap_numbers_s_dark, UI_SECONDS_SPACING);
+
+  int starting_x = (layer_get_bounds(layer).size.w - seconds_width); // align-right
+  
+  if (s_current_time.tm_min % 10 != 7) {
+    draw_string(ctx, seconds_str, starting_x, 0, s_bitmap_numbers_s_dark, UI_SECONDS_SPACING);
+  }
+  else {
+    // The 7 number swoops to the left, leaving a dark background, so use light characters in this case.
+    draw_string(ctx, seconds_str, starting_x, 0, s_bitmap_numbers_s_light, UI_SECONDS_SPACING);
+  }
 }
 
 /**
@@ -328,10 +424,17 @@ static void layer_steps_update_proc(Layer *layer, GContext *ctx) {
 static void layer_temp_high_update_proc(Layer *layer, GContext *ctx) {
   static char temp_high_str[] = "-2000°";
   if (s_temp_high_loading) {
-    strcpy(temp_high_str, "~");
+    strcpy(temp_high_str, "--*");
   }
   else {
-    snprintf(temp_high_str, sizeof(temp_high_str), "%d*", s_temp_high);
+    int s_temp_high_display;
+    if (strcmp(settings.TemperatureUnit, "F") == 0) {
+      s_temp_high_display = (s_temp_high_c * 9) / 5 + 32;
+    }
+    else {
+      s_temp_high_display = s_temp_high_c;
+    }
+    snprintf(temp_high_str, sizeof(temp_high_str), "%d*", s_temp_high_display);
   }
 
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
@@ -354,10 +457,17 @@ static void layer_temp_high_update_proc(Layer *layer, GContext *ctx) {
 static void layer_temp_current_update_proc(Layer *layer, GContext *ctx) {
   static char temp_current_str[] = "-2000°";
   if (s_temp_current_loading) {
-    strcpy(temp_current_str, "~");
+    strcpy(temp_current_str, "--*");
   }
   else {
-    snprintf(temp_current_str, sizeof(temp_current_str), "%d*", s_temp_current);
+    int s_temp_current_display;
+    if (strcmp(settings.TemperatureUnit, "F") == 0) {
+      s_temp_current_display = (s_temp_current_c * 9) / 5 + 32;
+    }
+    else {
+      s_temp_current_display = s_temp_current_c;
+    }
+    snprintf(temp_current_str, sizeof(temp_current_str), "%d*", s_temp_current_display);
   }
 
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
@@ -380,10 +490,17 @@ static void layer_temp_current_update_proc(Layer *layer, GContext *ctx) {
 static void layer_temp_low_update_proc(Layer *layer, GContext *ctx) {
   static char temp_low_str[] = "-2000°";
   if (s_temp_low_loading) {
-    strcpy(temp_low_str, "~");
+    strcpy(temp_low_str, "--*");
   }
   else {
-    snprintf(temp_low_str, sizeof(temp_low_str), "%d*", s_temp_low);
+    int s_temp_low_display;
+    if (strcmp(settings.TemperatureUnit, "F") == 0) {
+      s_temp_low_display = (s_temp_low_c * 9) / 5 + 32;
+    }
+    else {
+      s_temp_low_display = s_temp_low_c;
+    }
+    snprintf(temp_low_str, sizeof(temp_low_str), "%d*", s_temp_low_display);
   }
 
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
@@ -401,9 +518,89 @@ static void layer_temp_low_update_proc(Layer *layer, GContext *ctx) {
 }
 
 /**
- * @brief Sunlight Labels: layer_update_proc
+ * @brief Sunrise / Sunset Display: layer_update_proc
  */
-static void layer_sunlight_labels_update_proc(Layer *layer, GContext *ctx) {
+static void layer_sunrise_sunset_update_proc(Layer *layer, GContext *ctx) {
+  // Set the Graphics Context Colors for when its time to draw.
+  graphics_context_set_compositing_mode(ctx, GCompOpAssign);
+  graphics_context_set_stroke_color(ctx, GColorWhite);
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  
+  time_t midnight_today_seconds = get_midnight_today_seconds();
+
+  bool is_valid_sunrise_sunset = (
+    s_sunrise_seconds
+    && s_sunset_seconds
+    && (s_sunset_seconds > s_sunrise_seconds)
+    && (s_sunrise_seconds > midnight_today_seconds)
+  );
+  
+  // If sunrise/sunset data is still loading, draw 3 placeholder boxes.
+  if (s_sunrise_sunset_loading || !is_valid_sunrise_sunset) {
+
+    if (!is_valid_sunrise_sunset) {
+      // TODO - add some special-case handling - what if sunset comes before sunrise some day, or it's all sun, or no sun day.. 
+      // For now, just draw "loading" display if sunrise and sunset are not standard...
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Non-standard sunrise[%ld] and sunset[%ld] times. Will not display.", s_sunrise_seconds, s_sunset_seconds);
+    }
+
+    // Draw the "bars loading" boxes
+    graphics_draw_rect(ctx, GRect(
+      0, 
+      UI_SUNRISE_SUNSET_BARS_Y,
+      UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W,
+      UI_SUNRISE_SUNSET_BARS_H));
+    graphics_draw_rect(ctx, GRect(
+      UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W + UI_SUNRISE_SUNSET_LOAD_BOX_SPACE_HORIZONTAL,
+      UI_SUNRISE_SUNSET_BARS_Y,
+      UI_SUNRISE_SUNSET_LOAD_BOX_MIDDLE_W,
+      UI_SUNRISE_SUNSET_BARS_H));
+    graphics_draw_rect(ctx, GRect(
+      UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W + UI_SUNRISE_SUNSET_LOAD_BOX_SPACE_HORIZONTAL + UI_SUNRISE_SUNSET_LOAD_BOX_MIDDLE_W + UI_SUNRISE_SUNSET_LOAD_BOX_SPACE_HORIZONTAL,
+      UI_SUNRISE_SUNSET_BARS_Y,
+      UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W,
+      UI_SUNRISE_SUNSET_BARS_H));
+
+      // Draw the "labels loading" boxes
+    graphics_draw_rect(ctx, GRect(
+      UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W + UI_SUNRISE_SUNSET_LOAD_BOX_SPACE_HORIZONTAL,
+      0,
+      UI_SUNRISE_SUNSET_LOAD_BOX_LABEL_W,
+      UI_SUNLIGHT_LABELS_H));
+    graphics_draw_rect(ctx, GRect(
+      UI_SUNRISE_SUNSET_LOAD_BOX_SIDE_W + UI_SUNRISE_SUNSET_LOAD_BOX_SPACE_HORIZONTAL + UI_SUNRISE_SUNSET_LOAD_BOX_LABEL_2_OFFSET,
+      0,
+      UI_SUNRISE_SUNSET_LOAD_BOX_LABEL_W,
+      UI_SUNLIGHT_LABELS_H));
+    return;
+  }
+
+  // Note: x and y here is relative to the layer, not the entire screen.
+
+  // Convert seconds to minutes, and divide by 15 - since each pixel represents a 15-min interval.
+  int sunrise_x = round((double)((s_sunrise_seconds - midnight_today_seconds) / 60) / 15);
+  int sunset_x = round((double)((s_sunset_seconds - midnight_today_seconds) / 60) / 15);
+
+  // Calculate pre_sun, sun, and post_sun X and Width values.
+  int pre_sun_x = 0;
+  int pre_sun_w = (sunrise_x - UI_SUNRISE_SUNSET_BARS_SPACE_HORIZONTAL); // leave space between pre_sun and sun
+  int sun_w = (sunset_x - sunrise_x);
+  int post_sun_x = (sunset_x + UI_SUNRISE_SUNSET_BARS_SPACE_HORIZONTAL); // leave space between sun and post_sun.
+  int post_sun_w = (UI_SUNRISE_SUNSET_W - post_sun_x);
+
+  // Draw the three rectangles for pre_sun, sun, and post_sun
+  if (pre_sun_w > 0) {
+    graphics_draw_rect(ctx, GRect(pre_sun_x, UI_SUNRISE_SUNSET_BARS_Y, pre_sun_w, UI_SUNRISE_SUNSET_BARS_H));
+  }
+  if (sun_w > 0) {
+    graphics_fill_rect(ctx, GRect(sunrise_x, UI_SUNRISE_SUNSET_BARS_Y, sun_w, UI_SUNRISE_SUNSET_BARS_H), 1, GCornerNone);
+  }
+  if (post_sun_w > 0) {
+    graphics_draw_rect(ctx, GRect(post_sun_x, UI_SUNRISE_SUNSET_BARS_Y, post_sun_w, UI_SUNRISE_SUNSET_BARS_H));
+  }
+
+  // -=-=-=-=-=-=-= Draw the Labels -=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
   struct tm sunrise_time = *localtime((time_t *)&s_sunrise_seconds);
   struct tm sunset_time = *localtime((time_t *)&s_sunset_seconds);
 
@@ -420,11 +617,12 @@ static void layer_sunlight_labels_update_proc(Layer *layer, GContext *ctx) {
     else if (sunrise_hour == 0) {
       sunrise_hour = 12;
     }
-    // TODO - check if user wants leading zero on 12-hr format or not.
-    snprintf(sunrise_label, sizeof(sunrise_label), "%d:%02d", sunrise_hour, sunrise_min);
+  }
+  if (is_24h_style || settings.LeadingZeroXXS) {
+    snprintf(sunrise_label, sizeof(sunrise_label), "%02d:%02d", sunrise_hour, sunrise_min);
   }
   else {
-    snprintf(sunrise_label, sizeof(sunrise_label), "%02d:%02d", sunrise_hour, sunrise_min);
+    snprintf(sunrise_label, sizeof(sunrise_label), "%d:%02d", sunrise_hour, sunrise_min);
   }
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Sunrise Label:[%s]", sunrise_label);
@@ -441,11 +639,12 @@ static void layer_sunlight_labels_update_proc(Layer *layer, GContext *ctx) {
     else if (sunset_hour == 0) {
       sunset_hour = 12;
     }
-    // TODO - check if user wants leading zero on 12-hr format or not.
-    snprintf(sunset_label, sizeof(sunset_label), "%d:%02d", sunset_hour, sunset_min);
+  }
+  if (is_24h_style || settings.LeadingZeroXXS) {
+    snprintf(sunset_label, sizeof(sunset_label), "%02d:%02d", sunset_hour, sunset_min);
   }
   else {
-    snprintf(sunset_label, sizeof(sunset_label), "%02d:%02d", sunset_hour, sunset_min);
+    snprintf(sunset_label, sizeof(sunset_label), "%d:%02d", sunset_hour, sunset_min);
   }
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Sunset Label:[%s]", sunset_label);
@@ -454,73 +653,20 @@ static void layer_sunlight_labels_update_proc(Layer *layer, GContext *ctx) {
   int sunrise_label_w = calculate_string_width_px(sunrise_label, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
   int sunset_label_w = calculate_string_width_px(sunset_label, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
 
-  // Convert seconds to minutes, and divide by 15 - since each pixel represents a 15-min interval.
-  time_t midnight_today_seconds = get_midnight_today_seconds();
-  int sunrise_x = round((double)((s_sunrise_seconds - midnight_today_seconds) / 60) / 15);
-  int sunset_x = round((double)((s_sunset_seconds - midnight_today_seconds) / 60) / 15) - sunset_label_w; // move this left so it sits within the sun area.
+  int sunrise_label_x = sunrise_x;
+  int sunset_label_x = sunset_x - sunset_label_w; // move this left so it sits within the sun area.
 
   // If the labels overlap, move them to the outsides of the sunrise / sunset locations.
-  if (sunset_x >= sunrise_x && sunset_x <= (sunrise_x + sunrise_label_w + UI_SUNLIGHT_LABELS_SEPARATION)) {
-    sunrise_x -= sunrise_label_w;
-    sunset_x += sunset_label_w;
+  if (sunset_label_x >= sunrise_label_x && sunset_label_x <= (sunrise_label_x + sunrise_label_w + UI_SUNLIGHT_LABELS_SEPARATION)) {
+    sunrise_label_x -= sunrise_label_w;
+    sunset_label_x += sunset_label_w;
   }
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Current sunrise/sunset seconds: sunrise[%ld] sunset[%ld]", s_sunrise_seconds, s_sunset_seconds);
   APP_LOG(APP_LOG_LEVEL_DEBUG, "About to draw labels: sunrise:[%s] sunset:[%s]", sunrise_label, sunset_label);
 
-  draw_string(ctx, sunrise_label, sunrise_x, 0, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
-  draw_string(ctx, sunset_label, sunset_x, 0, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
-}
-
-/**
- * @brief Sunrise / Sunset Display: layer_update_proc
- */
-static void layer_sunrise_sunset_update_proc(Layer *layer, GContext *ctx) {
-  GRect bounds = layer_get_bounds(layer);
-
-  // Set the Graphics Context Colors for when its time to draw.
-  graphics_context_set_compositing_mode(ctx, GCompOpAssign);
-  graphics_context_set_stroke_color(ctx, GColorWhite);
-  graphics_context_set_fill_color(ctx, GColorWhite);
-  
-  time_t midnight_today_seconds = get_midnight_today_seconds();
-
-  // TODO - add some special-case handling - what if sunset comes before sunrise some day, or it's all sun, or no sun day.. 
-  // For now, return if sunrise and sunset are not standard...
-  if (!(
-    s_sunrise_seconds
-    && s_sunset_seconds
-    && (s_sunset_seconds > s_sunrise_seconds)
-    && (s_sunrise_seconds > midnight_today_seconds))) {
-    APP_LOG(APP_LOG_LEVEL_ERROR, "Non-standard sunrise[%ld] and sunset[%ld] times. Will not display.", s_sunrise_seconds, s_sunset_seconds);
-    // Draw one rectangle without data.
-    graphics_draw_rect(ctx, bounds);
-    return;
-  }
-
-  // Note: x and y here is relative to the layer, not the entire screen.
-
-  // Convert seconds to minutes, and divide by 15 - since each pixel represents a 15-min interval.
-  int sunrise_x = round((double)((s_sunrise_seconds - midnight_today_seconds) / 60) / 15);
-  int sunset_x = round((double)((s_sunset_seconds - midnight_today_seconds) / 60) / 15);
-
-  // Calculate pre_sun, sun, and post_sun X and Width values.
-  int pre_sun_x = 0;
-  int pre_sun_w = (sunrise_x - UI_SUNRISE_SUNSET_SPACE_HORIZONTAL); // leave space between pre_sun and sun
-  int sun_w = (sunset_x - sunrise_x);
-  int post_sun_x = (sunset_x + UI_SUNRISE_SUNSET_SPACE_HORIZONTAL); // leave space between sun and post_sun.
-  int post_sun_w = (UI_SUNRISE_SUNSET_W - post_sun_x);
-
-  // Draw the three rectangles for pre_sun, sun, and post_sun
-  if (pre_sun_w > 0) {
-    graphics_draw_rect(ctx, GRect(pre_sun_x, 0, pre_sun_w, UI_SUNRISE_SUNSET_H));
-  }
-  if (sun_w > 0) {
-    graphics_fill_rect(ctx, GRect(sunrise_x, 0, sun_w, UI_SUNRISE_SUNSET_H), 1, GCornerNone);
-  }
-  if (post_sun_w > 0) {
-    graphics_draw_rect(ctx, GRect(post_sun_x, 0, post_sun_w, UI_SUNRISE_SUNSET_H));
-  }
+  draw_string(ctx, sunrise_label, sunrise_label_x, 0, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
+  draw_string(ctx, sunset_label, sunset_label_x, 0, s_bitmap_numbers_xxs_light, UI_SUNLIGHT_LABELS_SPACE_HORIZONTAL);
 }
 
 /**
@@ -543,7 +689,7 @@ static void update_time(struct tm *tick_time) {
   int h_ones = display_hour % 10;
 
   bitmap_layer_set_bitmap(s_bitmap_layer_time_h2, s_bitmap_numbers_lg[h_ones]);
-  if (!clock_is_24h_style() && h_tens == 0) {
+  if (h_tens == 0 && !clock_is_24h_style() && !settings.LeadingZero) {
     bitmap_layer_set_bitmap(s_bitmap_layer_time_h1, NULL);
     bitmap_layer_set_bitmap(s_bitmap_layer_time_h1_offset, NULL);
   }
@@ -569,6 +715,19 @@ static void update_time(struct tm *tick_time) {
   else {
     bitmap_layer_set_bitmap(s_bitmap_layer_time_m1, s_bitmap_numbers_lg[m_tens]);
     bitmap_layer_set_bitmap(s_bitmap_layer_time_m1_offset, NULL);
+  }
+}
+
+/**
+ * @brief Function to update seconds display
+ */
+static void update_seconds() {
+  if (s_seconds_within_display_interval || settings.DisplaySecondsInterval == 1) {
+    layer_set_hidden(s_layer_seconds, false);
+    layer_mark_dirty(s_layer_seconds);
+  }
+  else {
+    layer_set_hidden(s_layer_seconds, true);
   }
 }
 
@@ -668,38 +827,210 @@ static void update_conditions() {
 }
 
 /**
+ * @brief Helper function to request weather data.
+ */
+static void request_weather() {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Sending REQUEST_WEATHER message...", settings.WeatherUpdateInterval);
+
+  // Begin dictionary
+  DictionaryIterator *iter;
+  app_message_outbox_begin(&iter);
+
+  // Add a key-value pair
+  dict_write_uint8(iter, MESSAGE_KEY_REQUEST_WEATHER, 1);
+
+  // Send the message!
+  app_message_outbox_send(); // This requests the latest weather and daylight
+}
+
+/**
+ * @brief Function to execute when second Apptimer expires
+ */
+static void second_timer_callback() {
+  s_hide_seconds_on_next_tick = true;
+}
+
+/**
+ * @brief Function to hide the seconds after the designated interval.
+ */
+static void hide_seconds() {
+  s_seconds_within_display_interval = false;
+  layer_set_hidden(s_layer_seconds, true);
+}
+
+/**
  * @brief Handler function for when a 'tick' event occurs.
  */
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "tick_handler([%d:%d:%d], [%d%d%d%d])", 
+    tick_time->tm_hour,
+    tick_time->tm_min,
+    tick_time->tm_sec, 
+    (units_changed & DAY_UNIT) ? 1 : 0,
+    (units_changed & HOUR_UNIT) ? 1 : 0,
+    (units_changed & MINUTE_UNIT) ? 1 : 0,
+    (units_changed & SECOND_UNIT) ? 1 : 0
+  );
+
   s_current_time = *tick_time;
 
-  update_time(tick_time);
-  update_date(tick_time);
-  update_sun_index(tick_time);
-  update_steps();
-
-  time_t midnight_today_seconds = get_midnight_today_seconds();
-  time_t current_seconds = mktime(tick_time);
-
-  // Request weather info every 30 minutes, or within 2 minutes after midnight
-  if (tick_time->tm_min %30 == 0 || (current_seconds >= midnight_today_seconds && current_seconds <= (midnight_today_seconds + 120))) {
-  // if (tick_time->tm_min %1 == 0) {
-    // Begin dictionary
-    DictionaryIterator *iter;
-    app_message_outbox_begin(&iter);
-
-    // Add a key-value pair
-    dict_write_uint8(iter, 0, 0);
-
-    // Send the message!
-    app_message_outbox_send(); // This requests the latest weather and daylight
+  // This helps smooth out the second display - waits till the next tick to disappear instead of midway through a second.
+  if (s_hide_seconds_on_next_tick) {
+    hide_seconds();
+    s_seconds_timer = NULL;
+    s_hide_seconds_on_next_tick = false;
+    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
   }
 
-  // If it's within 2 minutes after sunrise or sunset, call update_conditions() to transition sun/moon icons.
-  time_t epoch_seconds = mktime(tick_time);
-  if ((epoch_seconds >= s_sunrise_seconds && epoch_seconds <= (s_sunrise_seconds + 120))
-    || (epoch_seconds >= s_sunset_seconds && epoch_seconds <= (s_sunset_seconds + 120))) {
-      update_conditions();
+  // Only run this logic on SECOND change
+  // if (units_changed & SECOND_UNIT) {
+  if (s_last_sec != tick_time->tm_sec) {
+    update_seconds();
+    s_last_sec = tick_time->tm_sec;
+  }
+  
+  // Only run this logic on MINUTE change
+  // if (units_changed & MINUTE_UNIT) {
+  if (s_last_min != tick_time->tm_min) {
+    time_t midnight_today_seconds = get_midnight_today_seconds();
+    time_t current_seconds = mktime(tick_time);
+    
+    update_time(tick_time);
+    update_date(tick_time);
+    update_sun_index(tick_time);
+    update_steps();
+    // Request weather info at chosen interval, or within 2 minutes after midnight
+    int total_minutes_today = (tick_time->tm_hour * 60) + tick_time->tm_min;
+    if ((settings.WeatherUpdateInterval > 0 && total_minutes_today % settings.WeatherUpdateInterval == 0) || (current_seconds >= midnight_today_seconds && current_seconds <= (midnight_today_seconds + 120))) {
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Weather update interval triggered at [%d] minute mark!", settings.WeatherUpdateInterval);
+      if (s_settings_persisted) {
+        // Only request weather if settings (including desired Temperature Units) are configured.
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Not requesting weather data until settings are saved.", settings.WeatherUpdateInterval);
+        request_weather();
+      }
+    }
+
+    // If it's within 2 minutes after sunrise or sunset, call update_conditions() to transition sun/moon icons.
+    time_t epoch_seconds = mktime(tick_time);
+    if ((epoch_seconds >= s_sunrise_seconds && epoch_seconds <= (s_sunrise_seconds + 120))
+      || (epoch_seconds >= s_sunset_seconds && epoch_seconds <= (s_sunset_seconds + 120))) {
+        update_conditions();
+    }
+  }
+  s_last_min = tick_time->tm_min;
+}
+
+/**
+ * @brief Function to update UI based on settings
+ */
+static void prv_update_display() {
+  // 1. show or hide layers, and set colors here - based on 'settings' variable.
+  // 2. mark any layers dirty that need to be redrawn using settings colors etc.
+  time_t temp = time(NULL);
+  struct tm *tick_time = localtime(&temp);
+  update_time(tick_time);
+  update_date(tick_time);
+  
+  s_current_time = *tick_time;
+  update_seconds();
+  layer_mark_dirty(s_layer_temp_high);
+  layer_mark_dirty(s_layer_temp_current);
+  layer_mark_dirty(s_layer_temp_low);
+  layer_mark_dirty(s_layer_sunrise_sunset);
+}
+
+/**
+ * @brief Function to handle "watch shake / tap" motion events
+ */
+static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Motion detected!");
+
+    time_t now = time(NULL);
+    static time_t last_tap_event_time = 0;
+
+    // Only allow motion at defined interval to prevent too many events firing
+    if (now - last_tap_event_time > 1) {
+      last_tap_event_time = now;
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Motion occurred after delay interval - Shake handler firing!");
+
+      if (settings.VibrateOnMotion) {
+        vibes_short_pulse(); // Vibrate to acknowledge shake/tap event
+      }
+
+      // If "Display seconds" is set to "_s on motion" (0=Off, 1=Always on, >1 indicates "_s on motion" interval in seconds)
+      if (settings.DisplaySecondsInterval > 1) {
+        s_seconds_within_display_interval = true;
+
+        if (s_seconds_timer) {
+          // If a timer exists, cancel it.
+          app_timer_cancel(s_seconds_timer);
+          s_seconds_timer = NULL;
+          s_hide_seconds_on_next_tick = false;
+        }
+        s_seconds_timer = app_timer_register(settings.DisplaySecondsInterval * 1000, second_timer_callback, NULL);
+        time_t now = time(NULL);
+        struct tm tick_time_copy = *localtime(&now); // Note the '*': copy the values, not the pointer
+        tick_handler(&tick_time_copy, SECOND_UNIT | MINUTE_UNIT | HOUR_UNIT | DAY_UNIT);
+
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Subscribing tick_handler to (MINUTE_UNIT | SECOND_UNIT)");
+        tick_timer_service_subscribe(MINUTE_UNIT | SECOND_UNIT, tick_handler);
+      }
+
+      if (settings.WeatherUpdateOnMotion) {
+        if (s_settings_persisted) {
+          // Only request weather if settings (including desired Temperature Units) are configured.
+          request_weather();
+        }
+      }
+    }
+}
+
+/**
+ * @brief Function to sync accelerometer subscriptions based on settings
+ */
+static void update_service_subscriptions() {
+  if (settings.WeatherUpdateOnMotion && !s_is_accel_subscribed) {
+    accel_tap_service_subscribe(accel_tap_handler);
+    s_is_accel_subscribed = true;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Accel subscribed");
+  }
+  
+  if (settings.DisplaySecondsInterval > 1 && !s_is_accel_subscribed) {
+    accel_tap_service_subscribe(accel_tap_handler);
+    s_is_accel_subscribed = true;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Accel subscribed");
+  }
+
+  if (settings.VibrateOnMotion && !s_is_accel_subscribed) {
+    accel_tap_service_subscribe(accel_tap_handler);
+    s_is_accel_subscribed = true;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Accel subscribed");
+  }
+
+  // If all the shake settings are turned off (check them all in this if-statement), and the accelerometer handler is subscribed, unsubscribe it.
+  if (!settings.WeatherUpdateOnMotion && (settings.DisplaySecondsInterval <= 1) && !settings.VibrateOnMotion && s_is_accel_subscribed) {
+    accel_tap_service_unsubscribe();
+    s_is_accel_subscribed = false;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Accel unsubscribed");
+  }
+  
+  // If "Display Seconds" is "Always On", we want to subscribe to (MINUTE_UNIT | SECOND_UNIT) immediately
+  if (settings.DisplaySecondsInterval == 1) {
+    tick_timer_service_subscribe(MINUTE_UNIT | SECOND_UNIT, tick_handler);
+    time_t now = time(NULL);
+    struct tm tick_time_copy = *localtime(&now); // Note the '*': copy the values, not the pointer
+    tick_handler(&tick_time_copy, SECOND_UNIT | MINUTE_UNIT | HOUR_UNIT | DAY_UNIT);
+  }
+  
+  // If "Display Seconds" is OFF or using motion, we want to subscribe to MINUTE_UNIT only (motion may update the subscription to include SECOND_UNIT later)
+  if (settings.DisplaySecondsInterval < 1 || settings.DisplaySecondsInterval > 1) {
+    hide_seconds();
+    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+    // Cancel any timers since the settings are being updated.
+    if (s_seconds_timer) {
+      app_timer_cancel(s_seconds_timer); // Cancel any previous seconds timer
+      s_seconds_timer = NULL;
+    }
   }
 }
 
@@ -874,6 +1205,10 @@ static void main_window_load(Window *window) {
   bitmap_layer_set_alignment(s_bitmap_layer_time_m2, GAlignRight);
   layer_add_child(s_container_layer, bitmap_layer_get_layer(s_bitmap_layer_time_m2));
 
+  s_layer_seconds = layer_create(GRect(UI_SECONDS_X, UI_SECONDS_Y, UI_SECONDS_W, UI_SECONDS_H));
+  layer_set_update_proc(s_layer_seconds, layer_seconds_update_proc);
+  layer_add_child(s_container_layer, s_layer_seconds);
+
   s_layer_date = layer_create(GRect(UI_DATE_X, UI_DATE_Y, UI_DATE_W, UI_DATE_H));
   layer_set_update_proc(s_layer_date, layer_date_update_proc);
   layer_add_child(s_container_layer, s_layer_date);
@@ -897,7 +1232,6 @@ static void main_window_load(Window *window) {
   s_bitmap_layer_conditions = bitmap_layer_create(GRect(UI_CONDITIONS_X, UI_CONDITIONS_Y, UI_CONDITIONS_W, UI_CONDITIONS_H));
   bitmap_layer_set_background_color(s_bitmap_layer_conditions, GColorClear);
   
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Test Log Message ***");
   // Target the "Advanced" graphics engine (Diorite/Time/Round)
   #if defined(PBL_SDK_3) || defined(PBL_COLOR) || defined(PBL_PLATFORM_DIORITE)
   bitmap_layer_set_compositing_mode(s_bitmap_layer_conditions, GCompOpSet);
@@ -907,13 +1241,16 @@ static void main_window_load(Window *window) {
   #endif
   layer_add_child(s_container_layer, bitmap_layer_get_layer(s_bitmap_layer_conditions));
   
-  s_layer_sunrise_sunset_bars = layer_create(GRect(UI_SUNRISE_SUNSET_X, UI_SUNRISE_SUNSET_Y, UI_SUNRISE_SUNSET_W, UI_SUNRISE_SUNSET_H));
-  layer_set_update_proc(s_layer_sunrise_sunset_bars, layer_sunrise_sunset_update_proc);
-  layer_add_child(s_container_layer, s_layer_sunrise_sunset_bars);
+  s_layer_sunrise_sunset = layer_create(GRect(UI_SUNRISE_SUNSET_X, UI_SUNRISE_SUNSET_Y, UI_SUNRISE_SUNSET_W, UI_SUNRISE_SUNSET_H));
+  layer_set_update_proc(s_layer_sunrise_sunset, layer_sunrise_sunset_update_proc);
+  layer_add_child(s_container_layer, s_layer_sunrise_sunset);
+
+  prv_update_display(); // Update any layers that will be affected by settings.
   
-  s_layer_sunlight_labels = layer_create(GRect(UI_SUNLIGHT_LABELS_X, UI_SUNLIGHT_LABELS_Y, UI_SUNLIGHT_LABELS_W, UI_SUNLIGHT_LABELS_H));
-  layer_set_update_proc(s_layer_sunlight_labels, layer_sunlight_labels_update_proc);
-  layer_add_child(s_container_layer, s_layer_sunlight_labels);
+  if (s_settings_persisted) {
+    // Only request weather if settings (including desired Temperature Units) are configured.
+    request_weather();
+  }
 }
 
 /**
@@ -921,6 +1258,8 @@ static void main_window_load(Window *window) {
  */
 static void main_window_unload(Window *window) {
   
+  layer_destroy(s_layer_seconds);
+
   bitmap_layer_destroy(s_bitmap_layer_time_h1);
   bitmap_layer_destroy(s_bitmap_layer_time_h1_offset);
   bitmap_layer_destroy(s_bitmap_layer_time_h2);
@@ -938,7 +1277,6 @@ static void main_window_unload(Window *window) {
   layer_destroy(s_layer_temp_high);
   layer_destroy(s_layer_temp_current);
   layer_destroy(s_layer_temp_low);
-  layer_destroy(s_layer_sunlight_labels);
 
   array_length = sizeof(s_bitmap_numbers_s_light) / sizeof(*s_bitmap_numbers_s_light);
   for (size_t i = 0; i < array_length; i++) {
@@ -971,7 +1309,7 @@ static void main_window_unload(Window *window) {
   }
   bitmap_layer_destroy(s_bitmap_layer_conditions);
 
-  layer_destroy(s_layer_sunrise_sunset_bars);
+  layer_destroy(s_layer_sunrise_sunset);
 
   gbitmap_destroy(s_bitmap_sun_index);
   bitmap_layer_destroy(s_bitmap_layer_sun_index);
@@ -988,6 +1326,8 @@ static void main_window_unload(Window *window) {
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Inbox received message!");
 
+  // Check for weather data
+
   Tuple *temp_hi_tuple = dict_find(iterator, MESSAGE_KEY_TEMP_HI);
   Tuple *temp_cur_tuple = dict_find(iterator, MESSAGE_KEY_TEMP_CUR);
   Tuple *temp_lo_tuple = dict_find(iterator, MESSAGE_KEY_TEMP_LO);
@@ -996,36 +1336,112 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   Tuple *sunset_tuple = dict_find(iterator, MESSAGE_KEY_SUNSET);
 
   if (temp_hi_tuple) {
-    s_temp_high = (int)temp_hi_tuple->value->int32;
+    s_temp_high_c = (int)temp_hi_tuple->value->int32;
     s_temp_high_loading = false;
     layer_mark_dirty(s_layer_temp_high);
   }
   if (temp_cur_tuple) {
-    s_temp_current = (int)temp_cur_tuple->value->int32;
+    s_temp_current_c = (int)temp_cur_tuple->value->int32;
     s_temp_current_loading = false;
     layer_mark_dirty(s_layer_temp_current);
   }
   if (temp_lo_tuple) {
-    s_temp_low = (int)temp_lo_tuple->value->int32;
+    s_temp_low_c = (int)temp_lo_tuple->value->int32;
     s_temp_low_loading = false;
     layer_mark_dirty(s_layer_temp_low);
   }
   if (sunrise_tuple) {
     s_sunrise_seconds = (long)sunrise_tuple->value->int32;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received Sunrise[%ld]", s_sunrise_seconds);
-    layer_mark_dirty(s_layer_sunlight_labels);
-    layer_mark_dirty(s_layer_sunrise_sunset_bars);
+    s_sunrise_sunset_loading = false;
+    layer_mark_dirty(s_layer_sunrise_sunset);
   }
   if (sunset_tuple) {
     s_sunset_seconds = (long)sunset_tuple->value->int32;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received Sunset[%ld]", s_sunset_seconds);
-    layer_mark_dirty(s_layer_sunlight_labels);
-    layer_mark_dirty(s_layer_sunrise_sunset_bars);
+    s_sunrise_sunset_loading = false;
+    layer_mark_dirty(s_layer_sunrise_sunset);
   }
   if (conditions_tuple) {
     snprintf(s_condition, sizeof(s_condition), "%s", conditions_tuple->value->cstring);
     APP_LOG(APP_LOG_LEVEL_INFO, "RECEIVED CONDITION: %s", s_condition);
     update_conditions();
+  }
+
+  // Check for Clay Settings
+
+  Tuple *temp_unit_t = dict_find(iterator, MESSAGE_KEY_TemperatureUnit);
+  if (temp_unit_t) {
+    strncpy(settings.TemperatureUnit, temp_unit_t->value->cstring, sizeof(settings.TemperatureUnit));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTINGS message received: settings.TemperatureUnit: %s", settings.TemperatureUnit);
+  }
+  Tuple *date_format_t = dict_find(iterator, MESSAGE_KEY_DateFormat);
+  if (date_format_t) {
+    strncpy(settings.DateFormat, date_format_t->value->cstring, sizeof(settings.DateFormat));    
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTINGS message received: settings.DateFormat: %s", settings.DateFormat);
+  }
+  Tuple *leading_zero_t = dict_find(iterator, MESSAGE_KEY_LeadingZero);
+  if (leading_zero_t) {
+    settings.LeadingZero = (leading_zero_t->value->int32 == 1);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTINGS message received: settings.LeadingZero: %d", settings.LeadingZero);
+  }
+  Tuple *leading_zero_xxs_t = dict_find(iterator, MESSAGE_KEY_LeadingZeroXXS);
+  if (leading_zero_xxs_t) {
+    settings.LeadingZeroXXS = (leading_zero_xxs_t->value->int32 == 1);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTINGS message received: settings.LeadingZeroXXS: %d", settings.LeadingZeroXXS);
+  }
+  Tuple *weather_update_interval_t = dict_find(iterator, MESSAGE_KEY_WeatherUpdateInterval);
+  if (weather_update_interval_t) {
+    settings.WeatherUpdateInterval = atoi(weather_update_interval_t->value->cstring);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTINGS message received: settings.WeatherUpdateInterval: %d", settings.WeatherUpdateInterval);
+     // Safety: Prevent division by zero if the weather_update_interval string was empty/invalid
+    if (settings.WeatherUpdateInterval <= 0) {
+      settings.WeatherUpdateInterval = DEFAULT_WEATHER_UPDATE_INTERVAL;
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "WARNING: Received INVALID settings.WeatherUpdateInterval >= 0. Setting to: %d", settings.WeatherUpdateInterval);
+    }
+  }
+  Tuple *weather_update_on_motion_t = dict_find(iterator, MESSAGE_KEY_WeatherUpdateOnMotion);
+  if (weather_update_on_motion_t) {
+    settings.WeatherUpdateOnMotion = (weather_update_on_motion_t->value->int32 == 1);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTINGS message received: settings.WeatherUpdateOnMotion: %d", settings.WeatherUpdateOnMotion);
+  }
+  Tuple *display_seconds_interval_t = dict_find(iterator, MESSAGE_KEY_DisplaySecondsInterval);
+  if (display_seconds_interval_t) {
+    settings.DisplaySecondsInterval = atoi(display_seconds_interval_t->value->cstring);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTINGS message received: settings.DisplaySecondsInterval: %d", settings.DisplaySecondsInterval);
+    // Safety: Turn off if DisplaySecondsInterval is invalid
+    if (settings.DisplaySecondsInterval < 0 || settings.DisplaySecondsInterval > DISPLAY_SECONDS_MAX_INTERVAL) {
+      settings.DisplaySecondsInterval = 0;
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "WARNING: Received INVALID settings.DisplaySecondsInterval (<0 || >%d). Setting to: %d", DISPLAY_SECONDS_MAX_INTERVAL, settings.DisplaySecondsInterval);
+    }
+  }
+  Tuple *vibrate_on_motion_t = dict_find(iterator, MESSAGE_KEY_VibrateOnMotion);
+  if (vibrate_on_motion_t) {
+    settings.VibrateOnMotion = (vibrate_on_motion_t->value->int32 == 1);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTINGS message received: settings.VibrateOnMotion: %d", settings.VibrateOnMotion);
+  }
+
+  // Save settings if any changed.
+  if (temp_unit_t || date_format_t || leading_zero_t || leading_zero_xxs_t || weather_update_interval_t || weather_update_on_motion_t || display_seconds_interval_t || vibrate_on_motion_t) {
+    prv_save_settings();
+    s_settings_persisted = true;
+  }
+
+  // Save and apply display-related settings if any were changed
+  // if any Clay Settings dicts were found (add additional display-related settings to this if-statement)
+  if (temp_unit_t || date_format_t || leading_zero_t || leading_zero_xxs_t || display_seconds_interval_t) {
+    prv_update_display();
+
+    // Refetch the weather if the temperature unit changed
+    if (temp_unit_t) {
+      // s_settings_persisted is true, so make request
+      request_weather();
+    }
+  }
+
+  // Save and apply any service-related settings if any were changed
+  if (weather_update_interval_t || weather_update_on_motion_t || display_seconds_interval_t) {
+    update_service_subscriptions();
   }
 }
 
@@ -1054,6 +1470,8 @@ static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
  * @brief Function to initialize the application
  */
 static void init() {
+  s_settings_persisted = prv_load_settings();
+
   s_main_window = window_create();
 
   window_set_window_handlers(s_main_window, (WindowHandlers) {
@@ -1077,18 +1495,19 @@ static void init() {
   app_message_register_outbox_failed(outbox_failed_callback);
   app_message_register_outbox_sent(outbox_sent_callback);
   // Open AppMessage
-  const int inbox_size = 128;
-  const int outbox_size = 128;
+  const int inbox_size = 256;
+  const int outbox_size = 256;
   app_message_open(inbox_size, outbox_size);
 
-  tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
-  tick_handler(tick_time, MINUTE_UNIT);
+  update_service_subscriptions();
 }
 
 /**
  * @brief Function to de-initializes the application
  */
 static void deinit() {
+  tick_timer_service_unsubscribe();
+  accel_tap_service_unsubscribe();
   window_destroy(s_main_window);
 }
 

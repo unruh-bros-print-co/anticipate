@@ -1,10 +1,14 @@
 {
   "name": "anticipate",
   "author": "Unruh Bros. Print Co.",
-  "version": "1.0.2",
-  "keywords": ["pebble-app", "basalt", "diorite", "flint", "emery", "gabbro", "weather", "minimal", "black-and-white", "large display", "sunrise-sunset", "clean", "digital"],
+  "version": "1.2.0",
+  "keywords": [
+    "pebble-app"
+  ],
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "@rebble/clay": "^1.0.10"
+  },
   "pebble": {
     "displayName": "Anticipate",
     "uuid": "46eacbb9-5efc-439b-8889-942b365a591b",
@@ -22,7 +26,8 @@
     },
     "capabilities": [
       "health",
-      "location"
+      "location",
+      "configurable"
     ],
     "messageKeys": [
       "TEMP_HI",
@@ -30,7 +35,16 @@
       "TEMP_LO",
       "CONDITIONS",
       "SUNRISE",
-      "SUNSET"
+      "SUNSET",
+      "REQUEST_WEATHER",
+      "TemperatureUnit",
+      "DateFormat",
+      "LeadingZero",
+      "LeadingZeroXXS",
+      "WeatherUpdateInterval",
+      "WeatherUpdateOnMotion",
+      "DisplaySecondsInterval",
+      "VibrateOnMotion"
     ],
     "resources": {
       "media": [
@@ -388,7 +402,7 @@
         {
           "type": "bitmap",
           "name": "IMAGE_NUMBER_XXS_0_LIGHT",
-          "file": "images/num-xxs-0.png"
+          "file": "images/num-xxs-0-v1.png"
         },
         {
           "type": "bitmap",
@@ -418,7 +432,7 @@
         {
           "type": "bitmap",
           "name": "IMAGE_NUMBER_XXS_6_LIGHT",
-          "file": "images/num-xxs-6.png"
+          "file": "images/num-xxs-6-v3.png"
         },
         {
           "type": "bitmap",
@@ -428,12 +442,12 @@
         {
           "type": "bitmap",
           "name": "IMAGE_NUMBER_XXS_8_LIGHT",
-          "file": "images/num-xxs-8.png"
+          "file": "images/num-xxs-8-v0.png"
         },
         {
           "type": "bitmap",
           "name": "IMAGE_NUMBER_XXS_9_LIGHT",
-          "file": "images/num-xxs-9.png"
+          "file": "images/num-xxs-9-v3.png"
         },
         {
           "type": "bitmap",
@@ -445,55 +459,46 @@
           "name": "IMAGE_CONDITION_CLEAR_SUN_LIGHT",
           "file": "images/icon-condition-clear-sun-light-v3.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_CLEAR_MOON_LIGHT",
           "file": "images/icon-condition-clear-moon-light.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_PARTLY_CLOUDY_SUN_LIGHT",
           "file": "images/icon-condition-partly-cloudy-sun-light-v4.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_PARTLY_CLOUDY_MOON_LIGHT",
           "file": "images/icon-condition-partly-cloudy-moon-light-v3.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_CLOUDS_LIGHT",
           "file": "images/icon-condition-clouds-light-v3.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_DRIZZLE_LIGHT",
           "file": "images/icon-condition-drizzle-light-v3.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_RAIN_LIGHT",
           "file": "images/icon-condition-rain-light-v3.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_SNOW_LIGHT",
           "file": "images/icon-condition-snow-light-v3.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_THUNDERSTORM_LIGHT",
           "file": "images/icon-condition-thunderstorm-light-v3.png"
         },
-        
         {
           "type": "png",
           "name": "IMAGE_CONDITION_ATMOSPHERE_LIGHT",
