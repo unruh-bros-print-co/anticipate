@@ -241,7 +241,7 @@ Pebble.addEventListener('ready',
             claySettings = JSON.parse(claySettingsJSON);
         }
 
-        // Send the settings message to the phone in EVERY case (because we set autoHandleEvents: off, we must handle sending this)
+        // Send the settings message to the phone in EVERY case to pass settings to watch.
         // Using a separate object because some fields types need to be converted.
         var directWatchPayload = {
             "DateFormat": claySettings.DateFormat, // keep as string
